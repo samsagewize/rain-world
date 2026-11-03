@@ -56,7 +56,7 @@ function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let
     Object.entries(c.attrs).forEach(([k, val]) => { report.traits[k] = report.traits[k] || {}; report.traits[k][val] = (report.traits[k][val] || 0) + 1; }); });
   Object.keys(report.traits).forEach(k => report.traits[k] = Object.fromEntries(Object.entries(report.traits[k]).sort((a, b) => b[1] - a[1])));
   fs.writeFileSync(OUT + '/rarity-report.json', JSON.stringify(report, null, 2));
-  let md = `# Rain Cats rarity report\n\nTotal: ${cats.length} (unique visual trait combos: ${new Set(manifest.map(c => VIS.map(k => c.attrs[k]).join())).size})\n\n## Rarity\n\n| Rarity | Count | % |\n|---|---|---|\n`;
+  let md = `# Rain Cats rarity report\n\nTotal: ${cats.length} (unique visual trait combos: ${new Set(manifest.map(c => JSON.stringify(c.attrs))).size})\n\n## Rarity\n\n| Rarity | Count | % |\n|---|---|---|\n`;
   ['Common', 'Rare', 'Epic', 'Legendary', 'Super Rare'].forEach(r => md += `| ${r} | ${report.rarity[r] || 0} | ${(100 * (report.rarity[r] || 0) / cats.length).toFixed(2)}% |\n`);
   md += `\n## Super Rares (1/1)\n\n` + manifest.filter(c => c.rarity === 'Super Rare').map(c => `- Rain Cat #${String(c.number).padStart(4, '0')}: ${c.title} ("${c.name}")`).join('\n') + '\n';
   for (const [k, vals] of Object.entries(report.traits)) { md += `\n## ${k}\n\n| Value | Count | % |\n|---|---|---|\n`; for (const [val, n] of Object.entries(vals)) md += `| ${val} | ${n} | ${(100 * n / cats.length).toFixed(2)}% |\n`; }

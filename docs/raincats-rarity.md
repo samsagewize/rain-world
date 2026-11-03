@@ -1,6 +1,6 @@
 # Rain Cats rarity report
 
-Total: 1000 (unique visual trait combos: 1)
+Total: 1000 (unique visual trait combos: 1000)
 
 ## Rarity
 
