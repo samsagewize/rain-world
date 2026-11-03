@@ -72,6 +72,7 @@ function catGrid(look, d) {
     if (ch === 'o') col = look.o || C.out; else if (ch === 'f') col = look.f; else if (ch === 'l') col = look.l;
     else if (ch === 'e') col = look.e2 && x >= 8 ? look.e2 : look.e; else if (ch === 'k') col = C.out; else if (ch === 'n') col = C.pink;
     else if (ch === 'p') col = look.ear || C.pink; else if (ch === 'c') col = look.rainbow ? CAT_RAINBOW[x % 6] : (look.c || look.f);
+    if (ch === 'f' && look.rainbowFur) col = CAT_RAINBOW[Math.floor((y - 1) / 2.5) % 6];
     G[y][x] = col; } }
   const isF = (x, y) => rows[y] && rows[y][x] === 'f';
   const set = (pts, col) => pts.forEach(([x, y]) => { if (isF(x, y)) G[y][x] = col; });
@@ -88,6 +89,7 @@ function catGrid(look, d) {
     case 'socks': set(all.filter(([x, y]) => y === 14 || (y === 13 && (x < 5 || x > 10))), W); break;
     case 'patch': if (d !== 'up') set(all.filter(([x, y]) => y >= 4 && y <= 8 && (d === 'side' ? x >= 5 && x <= 8 : x >= 2 && x <= 6)), m); break;
   }
+  if (look.sparkle) set([[4, 4], [11, 5], [2, 8], [13, 9], [5, 12], [10, 13], [7, 5]], look.sparkle);
   if (look.spots) set([[4, 4], [5, 4], [4, 5], [5, 5], [10, 11], [11, 11], [10, 12], [11, 12]], look.spots);
   if (d !== 'up' && look.face && look.face !== 'none') {
     const EL = d === 'side' ? [6, 7] : [4, 5], ER = d === 'side' ? [11, 12] : [10, 11], o = look.o || C.out;
@@ -552,6 +554,7 @@ let tapTarget = null;
 const KEYMAP = { ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down', ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right' };
 addEventListener('keydown', e => {
   if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+  if (document.body.classList.contains('rc')) { if (e.code === 'Escape' && window.RainCats) window.RainCats.close(); return; }
   if (cmIsOpen()) { if (e.code === 'Escape') cmClose(); else if (e.code === 'KeyR') { e.preventDefault(); cmRandomize(); } return; }
   const d = KEYMAP[e.code];
   if (d) { keys.add(d); tapTarget = null; e.preventDefault(); hideToast(); }
@@ -654,7 +657,7 @@ function openDialog(t) {
   if (c.media && c.media.type === 'img') { const im = new Image(); im.src = c.media.src; im.alt = c.media.alt || ''; media.appendChild(im); }
   if (c.media && c.media.type === 'video') { const v = document.createElement('video'); v.src = c.media.src; v.controls = true; v.playsInline = true; v.setAttribute('playsinline', ''); v.muted = !soundOn; v.preload = 'metadata'; media.appendChild(v); }
   const links = $('dlgLinks'); links.innerHTML = '';
-  (c.links || []).forEach(l => { if (l.action) { const b = document.createElement('button'); b.className = 'act'; b.textContent = l.label; b.addEventListener('click', () => cmOpen()); links.appendChild(b); return; } const a = document.createElement('a'); a.href = l.href; a.target = '_blank'; a.rel = 'noopener'; a.textContent = l.label; if (l.alt) a.className = 'alt'; links.appendChild(a); });
+  (c.links || []).forEach(l => { if (l.action) { const b = document.createElement('button'); b.className = 'act'; b.textContent = l.label; b.addEventListener('click', () => l.action === 'catmaker' ? cmOpen() : rcOpen(l.action)); links.appendChild(b); return; } const a = document.createElement('a'); a.href = l.href; a.target = '_blank'; a.rel = 'noopener'; a.textContent = l.label; if (l.alt) a.className = 'alt'; links.appendChild(a); });
   $('dlgCredit').textContent = c.credit || '';
   drawIcon(c.icon[0], c.icon[1]);
   dlg.classList.remove('hidden'); document.body.classList.add('dlg');
@@ -939,6 +942,38 @@ function lookFrom(v) {
   return look;
 }
 
+// ---- Rain Cats NFT super rares (1/1s) and DNA helpers ----
+// DNA is either a 12-char Cat Maker code or 'sr-<id>' for a hand-designed super rare.
+const SR = [
+  { id: 'og', n: 'Rain (OG)', name: 'Rain', bg: 'og', look: { f: '#8ea6d6', l: '#dfe8fb', e: C.mint, c: C.mint, acc: 'rain', face: 'none', pattern: 'none' },
+    t: { Fur: 'Rain blue-gray (OG)', Belly: 'Cloud white', Eyes: 'Mint', Collar: 'Mint', Pattern: 'None', 'Ear Tips': 'Classic pink', 'On Top': 'Rain cloud', Face: 'None', Backdrop: 'Origin' } },
+  { id: 'golden', n: 'Golden Rain', name: 'Golden Rain', bg: 'gold', look: { f: '#f2c94c', o: '#5a3a00', l: '#fff3b0', e: C.mint, c: '#ffffff', ear: '#fff3b0', earTip: '#fff3b0', sparkle: '#ffffff', acc: 'halo', face: 'blush', pattern: 'none' },
+    t: { Fur: 'Solid gold', Belly: 'Gold', Eyes: 'Mint', Collar: 'Pearl', Pattern: 'Sparkles', 'Ear Tips': 'Gold tips', 'On Top': 'Halo', Face: 'Blush', Backdrop: 'Golden rays' } },
+  { id: 'cosmic', n: 'Cosmic King', name: 'Cosmo the Infinite', bg: 'galaxy', look: { f: '#3a2a6e', o: '#06040f', l: '#5b3bb0', e: '#6bc6ff', e2: '#ffd66b', c: '#ffd66b', rainbow: 1, galaxy: 1, dark: 1, ear: '#b78bff', earTip: '#b78bff', acc: 'crown', face: 'none', pattern: 'none' },
+    t: { Fur: 'Deep galaxy', Belly: 'Nebula', Eyes: 'Odd eyes', Collar: 'Rainbow', Pattern: 'Stars', 'Ear Tips': 'Lilac tips', 'On Top': 'Crown', Face: 'None', Backdrop: 'Galaxy' } },
+  { id: 'diamond', n: 'Diamond Cat', name: 'Duchess Diamond', bg: 'ice', look: { f: '#a8ecff', o: '#1d5f86', l: '#e8fbff', e: '#3a7bd5', c: '#ffffff', ear: '#e8fbff', earTip: '#ffffff', sparkle: '#ffffff', acc: 'star', face: 'none', pattern: 'none' },
+    t: { Fur: 'Diamond', Belly: 'Crystal', Eyes: 'Sapphire', Collar: 'Pearl', Pattern: 'Sparkles', 'Ear Tips': 'White tips', 'On Top': 'Star', Face: 'None', Backdrop: 'Ice' } },
+  { id: 'ghost', n: 'Ghost Cat', name: 'Boo', bg: 'navy', look: { f: 'rgba(225,232,255,0.55)', o: 'rgba(150,170,220,0.85)', l: 'rgba(255,255,255,0.75)', e: '#6bc6ff', c: 'rgba(225,232,255,0.55)', ear: 'rgba(255,170,210,0.6)', acc: 'none', face: 'blush', pattern: 'none' },
+    t: { Fur: 'Ghost', Belly: 'Mist', Eyes: 'Sky blue', Collar: 'No collar', Pattern: 'None', 'Ear Tips': 'Faded pink', 'On Top': 'Nothing', Face: 'Blush', Backdrop: 'Dark navy' } },
+  { id: 'rainbowstorm', n: 'Rainbow Storm', name: 'Thunderpaw', bg: 'sunset', look: { f: '#ffd66b', rainbowFur: 1, l: '#ffffff', e: '#2a3150', c: '#2a3150', ear: '#ffffff', earTip: '#ffffff', acc: 'storm', face: 'none', pattern: 'none' },
+    t: { Fur: 'Rainbow', Belly: 'Snow', Eyes: 'Storm', Collar: 'Navy', Pattern: 'None', 'Ear Tips': 'White tips', 'On Top': 'Lightning cloud', Face: 'None', Backdrop: 'Sunset' } },
+  { id: 'neon', n: 'Neon Cat', name: 'DJ Neon', bg: 'galaxy', look: { f: '#1b1d33', o: '#ff5ad1', l: '#2e3150', e: C.mint, c: C.mint, ear: '#ff5ad1', earTip: '#ff5ad1', dark: 1, acc: 'phones', face: 'glasses', pattern: 'none' },
+    t: { Fur: 'Neon midnight', Belly: 'Midnight', Eyes: 'Mint', Collar: 'Mint', Pattern: 'Neon outline', 'Ear Tips': 'Neon pink', 'On Top': 'Headphones', Face: 'Glasses', Backdrop: 'Galaxy' } },
+  { id: 'lava', n: 'Lava Cat', name: 'Captain Magma', bg: 'sunset', look: { f: '#ff5a3c', o: '#3a0a0a', l: '#ffd66b', mark: '#ffd66b', e: '#ffd66b', c: '#2e1010', ear: '#ffd66b', acc: 'sun', face: 'none', pattern: 'tabby' },
+    t: { Fur: 'Lava', Belly: 'Magma', Eyes: 'Gold', Collar: 'Obsidian', Pattern: 'Lava stripes', 'Ear Tips': 'Classic', 'On Top': 'Sun', Face: 'None', Backdrop: 'Sunset' } },
+  { id: 'snowqueen', n: 'Snow Queen', name: 'Lady Frost', bg: 'ice', look: { f: '#ffffff', o: '#4a6a9a', l: '#e6f4ff', e: '#6bc6ff', c: '#6bc6ff', ear: '#bfe6ff', earTip: '#bfe6ff', acc: 'snow', face: 'blush', pattern: 'none' },
+    t: { Fur: 'Snow', Belly: 'Ice', Eyes: 'Sky blue', Collar: 'Sky', Pattern: 'None', 'Ear Tips': 'Frost tips', 'On Top': 'Snow cloud', Face: 'Blush', Backdrop: 'Ice' } },
+];
+SR.forEach(r => { r.look.name = 'sr-' + r.id; r.look.code = 'sr-' + r.id; });
+function dnaInfo(dna) {
+  if (typeof dna === 'object' && dna) return { look: lookFrom(dna), bg: CM.bg[dna.bg].id, v: dna };
+  const v = cmParse(dna); if (v) return { look: lookFrom(v), bg: CM.bg[v.bg].id, v };
+  const r = typeof dna === 'string' && SR.find(x => 'sr-' + x.id === dna);
+  return r ? { look: r.look, bg: r.bg, sr: r } : null;
+}
+const lookFromDNA = dna => { const i = dnaInfo(dna); return i && i.look; };
+const dnaName = dna => { const i = dnaInfo(dna); return !i ? '' : i.sr ? i.sr.name : cmName(i.v); };
+
 // accessories, drawn relative to the 16x16 sprite's top-left (ox, oy)
 function drawAcc(g, id, ox, oy, t, noDrops) {
   const cx = ox + 8;
@@ -969,13 +1004,20 @@ function drawAcc(g, id, ox, oy, t, noDrops) {
 function pxCircle(g, cx, cy, r, col) { g.fillStyle = col; for (let y = -r; y <= r; y++) for (let x = -r; x <= r; x++) if (x * x + y * y <= r * r) g.fillRect(cx + x, cy + y, 1, 1); }
 function renderPortrait(g, v, t) {
   g.clearRect(0, 0, 32, 32);
-  const bg = CM.bg[v.bg].id;
+  const info = dnaInfo(v); if (!info) return;
+  const bg = info.bg;
+  if (bg === 'og') { R(g, 0, 0, 32, 32, '#0d1020'); [[3, 4], [27, 6], [6, 22], [24, 2], [29, 19], [14, 3]].forEach(([x, y]) => R(g, x, y, 1, 1, '#3a4470')); R(g, 0, 30, 32, 2, '#151a2e');
+    g.fillStyle = C.yellow; g.fillRect(0, 0, 32, 1); g.fillRect(0, 31, 32, 1); g.fillRect(0, 0, 1, 32); g.fillRect(31, 0, 1, 32); R(g, 1, 1, 1, 1, '#fff3b0'); R(g, 30, 1, 1, 1, '#fff3b0'); R(g, 1, 30, 1, 1, '#fff3b0'); R(g, 30, 30, 1, 1, '#fff3b0'); }
+  if (bg === 'gold') { R(g, 0, 0, 32, 32, '#3a2600'); pxCircle(g, 16, 18, 15, '#5a3c00'); pxCircle(g, 16, 18, 11, '#7a5400'); pxCircle(g, 16, 18, 7, '#9a6c08');
+    for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; R(g, Math.round(16 + Math.cos(a) * 14), Math.round(18 + Math.sin(a) * 14), 1, 1, '#ffd66b'); } }
+  if (bg === 'ice') { ['#0e2a44', '#123552', '#164262', '#1b5074', '#215f86', '#2a7099', '#3684ad', '#4a9cc4'].forEach((c, i) => R(g, 0, i * 4, 32, 4, c));
+    [[4, 5], [26, 3], [9, 12], [22, 10], [3, 20], [28, 22], [15, 4]].forEach(([x, y]) => { R(g, x, y, 1, 1, '#ffffff'); R(g, x - 1, y, 1, 1, '#bfe6ff'); R(g, x + 1, y, 1, 1, '#bfe6ff'); R(g, x, y - 1, 1, 1, '#bfe6ff'); R(g, x, y + 1, 1, 1, '#bfe6ff'); }); }
   if (bg === 'navy') { R(g, 0, 0, 32, 32, '#0d1020'); [[3, 4], [27, 6], [6, 22], [24, 2], [29, 19], [14, 3]].forEach(([x, y]) => R(g, x, y, 1, 1, '#3a4470')); R(g, 0, 30, 32, 2, '#151a2e'); }
   if (bg === 'mint') { R(g, 0, 0, 32, 32, '#0b1f22'); pxCircle(g, 16, 20, 15, '#0f2b2c'); pxCircle(g, 16, 20, 12, '#13413b'); pxCircle(g, 16, 20, 9, '#17614f'); }
   if (bg === 'sunset') { ['#2b1d4f', '#4a2466', '#7a3070', '#b0436c', '#e0605e', '#f0884f', '#f6a04d', '#ffd66b'].forEach((c, i) => R(g, 0, i * 4, 32, 4, c)); }
   if (bg === 'galaxy') { R(g, 0, 0, 32, 32, '#120a2a'); pxCircle(g, 8, 9, 6, '#24134f'); pxCircle(g, 25, 24, 7, '#2a1656'); pxCircle(g, 24, 8, 3, '#3b1e70');
     [[3, 3], [12, 2], [28, 4], [20, 12], [5, 16], [29, 14], [2, 27], [18, 29], [10, 25]].forEach(([x, y], i) => R(g, x, y, 1, 1, i % 3 === 0 ? C.mint : i % 3 === 1 ? '#ffffff' : C.pink)); }
-  const look = lookFrom(v), ox = 8, oy = 14;
+  const look = info.look, ox = 8, oy = 14;
   if (bg !== 'clear') R(g, ox + 3, oy + 15, 10, 1, 'rgba(0,0,0,0.35)');
   g.drawImage(catSprite(look, 'down', 0), ox, oy);
   drawAcc(g, look.acc, ox, oy, t);
@@ -1021,8 +1063,8 @@ const cmWindowCats = Array.from({ length: 8 }, () => { const v = {}; CM_KEYS.for
   lights.push({ x: CMB.x + W / 2, y: CMB.y - 12, r: 20, col: C.pink, a: 0.25 });
 })();
 targets.push({ id: 'catmaker', mdy: 40, x: CMB.x + CMB.w / 2, y: CMB.y + 12, r: 24, name: 'Cat Maker', label: 'Cat Maker', kind: 'main', card: {
-  tag: 'WORKSHOP · MAKE A CAT', title: 'Cat Maker', body: 'My cat workshop. Roll a random cat in my exact pixel style, with different fur, eyes, collars, patterns and hats. Lock the traits you love, re-roll the rest, then download it, share the link, or let it loose in the world.',
-  links: [{ label: 'Open Cat Maker', action: 'catmaker' }], icon: ['catmaker'] } });
+  tag: 'WORKSHOP · MAKE A CAT', title: 'Cat Maker', body: 'My cat workshop. Roll a random cat in my exact pixel style, with different fur, eyes, collars, patterns and hats. Lock the traits you love, re-roll the rest, then download it, share the link, or let it loose in the world. New: mint a mystery Rain Cat NFT on Solana, then walk around as it.',
+  links: [{ label: 'Open Cat Maker', action: 'catmaker' }, { label: 'Mint a mystery cat \u00b7 0.03 SOL', action: 'mint' }, { label: 'My Rain Cats', action: 'mine' }], icon: ['catmaker'] } });
 
 // ---- panel ----
 const cmEl = $('catmaker'), cmPrev = $('cmPreview'), cmPctx = cmPrev.getContext('2d');
@@ -1122,21 +1164,22 @@ function cmCopyLink() {
 }
 // cats released into the village
 function spawnMade(v) {
-  const look = lookFrom(v);
-  npcs.push({ pal: look, label: cmName(v), made: true, x: (6 + Math.random() * 12) * T, y: (9 + Math.random() * 6) * T, tx: 0, ty: 0, wait: 0.5, dir: 'down', frame: 0, ft: 0, bounds: [3 * T, 3 * T + 8, 21 * T, 17 * T], meow: 0 });
+  const look = lookFromDNA(v); if (!look) return;
+  npcs.push({ pal: look, label: dnaName(v), made: true, x: (6 + Math.random() * 12) * T, y: (9 + Math.random() * 6) * T, tx: 0, ty: 0, wait: 0.5, dir: 'down', frame: 0, ft: 0, bounds: [3 * T, 3 * T + 8, 21 * T, 17 * T], meow: 0 });
 }
-function released() { try { return (JSON.parse(localStorage.getItem('rainworld.cats') || '[]')).filter(c => cmParse(c)); } catch (e) { return []; } }
-function cmRelease() {
-  const code = cmCode(cmV); let list = released().filter(c => c !== code); list.push(code); list = list.slice(-6);
+function released() { try { return (JSON.parse(localStorage.getItem('rainworld.cats') || '[]')).filter(c => dnaInfo(c)); } catch (e) { return []; } }
+function releaseDNA(code, label) {
+  let list = released().filter(c => c !== code); list.push(code); list = list.slice(-6);
   localStorage.setItem('rainworld.cats', JSON.stringify(list));
   for (let i = npcs.length - 1; i >= 0; i--) if (npcs[i].made) npcs.splice(i, 1);
-  list.forEach(c => spawnMade(cmParse(c)));
-  cmClose(); showToast(cmName(cmV) + ' is now roaming the Grok Cats village! Use Places to visit.', 4000);
+  list.forEach(c => spawnMade(c));
+  showToast((label || dnaName(code)) + ' is now roaming the Grok Cats village! Use Places to visit.', 4000);
 }
+function cmRelease() { cmClose(); releaseDNA(cmCode(cmV)); }
 let meLook = null;
 function setMe(code) {
   if (code) localStorage.setItem('rainworld.me', code); else localStorage.removeItem('rainworld.me');
-  const v = code && cmParse(code); meLook = v ? lookFrom(v) : null;
+  meLook = code ? lookFromDNA(code) : null;
   $('btnMe').classList.toggle('hidden', !meLook);
 }
 function cmPlayAs() { setMe(cmCode(cmV)); cmClose(); showToast('You are playing as ' + cmName(cmV) + '. Tap RAIN at the top to turn back into Rain.', 4000); }
@@ -1146,17 +1189,29 @@ $('cmDownload').addEventListener('click', cmDownload);
 $('cmCopy').addEventListener('click', cmCopyLink);
 $('cmRelease').addEventListener('click', cmRelease);
 $('cmPlay').addEventListener('click', cmPlayAs);
+$('cmMint').addEventListener('click', () => { cmClose(); rcOpen('mint'); });
 $('cmBack').addEventListener('click', () => { setMe(null); cmRender(); showToast('Back to Rain!', 1800); });
 $('btnMe').addEventListener('click', () => { setMe(null); showToast('Back to Rain!', 1800); });
 cmBuildUI();
 released().forEach(c => spawnMade(cmParse(c)));
 setMe(localStorage.getItem('rainworld.me'));
 
+// Rain Cats mint panel: the Solana bundle is loaded only when someone opens it
+let rcLoading = null;
+function rcOpen(which) {
+  if (window.RainCats) return window.RainCats.open(which);
+  showToast('Loading the Rain Cats mint\u2026', 1500);
+  if (!rcLoading) rcLoading = new Promise((res, rej) => { const s = document.createElement('script'); s.src = 'raincats/mint.js?v=' + ((window.RAINCATS_CONFIG || {}).version || 1); s.onload = res; s.onerror = rej; document.head.appendChild(s); });
+  rcLoading.then(() => { hideToast(); window.RainCats.open(which); }, () => { rcLoading = null; showToast('Could not load the mint. Check your connection and try again.', 3000); });
+}
+
 // ---------- boot ----------
 resize(); buildPlaces(); updateCam();
 const sharedCat = cmParse(new URLSearchParams(location.search).get('cat'));
-if (sharedCat) cmOpen(sharedCat); else showToast("Hi, I'm Rain! This is my world, full of the things Christian and I built. Walk up to any place to learn about it." + (isTouch ? ' Use the pad or tap to walk.' : ' Arrows/WASD to walk, E to talk, M for places.'), 7000);
+const mintParam = new URLSearchParams(location.search).get('mint');
+if (mintParam !== null) rcOpen(mintParam === 'mine' ? 'mine' : 'mint'); else if (sharedCat) cmOpen(sharedCat); else showToast("Hi, I'm Rain! This is my world, full of the things Christian and I built. Walk up to any place to learn about it." + (isTouch ? ' Use the pad or tap to walk.' : ' Arrows/WASD to walk, E to talk, M for places.'), 7000);
 // debug/test hooks (used by the screenshot script)
-window.rainWorld = { player, targets, catMaker: { open: cmOpen, close: cmClose, randomize: cmRandomize, code: () => cmCode(cmV), rarity: () => cmRarity(cmV), name: () => cmName(cmV), dataURL: () => cmDataURL(cmV), locks: cmLocks }, open: id => { const t = targets.find(x => x.id === id); player.x = t.x; player.y = t.y; dismissed.clear(); }, setTime: t => { time = t; } };
+window.rainWorld = { player, targets, nft: { SR, CM, CM_KEYS, cmName, cmRarity, cmCode, cmParse, dnaInfo, png32: dna => { const [p, px] = mk(32, 32); renderPortrait(px, dna, 0.3); return p.toDataURL('image/png'); } },
+  world: { rcOpen, releaseDNA, setMe, lookFromDNA, dnaName, renderPortrait, showToast, blip, closeDialog, closePlaces, keys, padDirs, mk, get time() { return time; } }, catMaker: { open: cmOpen, close: cmClose, randomize: cmRandomize, code: () => cmCode(cmV), rarity: () => cmRarity(cmV), name: () => cmName(cmV), dataURL: () => cmDataURL(cmV), locks: cmLocks }, open: id => { const t = targets.find(x => x.id === id); player.x = t.x; player.y = t.y; dismissed.clear(); }, setTime: t => { time = t; } };
 requestAnimationFrame(loop);
 })();

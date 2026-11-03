@@ -53,3 +53,13 @@ A pixel workshop with a cat-ear roof and a blinking **CAT MAKER** sign, south-ea
 - **Let it roam the village** adds the cat to Grok Cats village; **Play as this cat** swaps Rain's look (the **RAIN** button switches back). Saved in your browser only. No backend.
 
 ![Cat Maker](docs/catmaker-panel.png)
+
+## Rain Cats (Solana NFT mint)
+
+The Cat Maker building now sells **Rain Cats**, a 3,699-cat Metaplex Core collection (symbol RCAT, 5% royalties). It is a blind mint for 0.03 SOL; the cat is revealed after you pay. Holders can play as their cats or let them roam the village.
+
+- `raincats/config.js`: the cluster, RPC, Candy Machine, guard, collection, treasury and free-mint wallets. While the addresses are `null` the panel shows "Mint opens soon".
+- `raincats/mint.js`: the bundled mint and "My Rain Cats" UI. It is loaded only when the panel is opened. Source: `tools/nft/web/mint-src.js`. Build: `npx esbuild web/mint-src.js --bundle --minify --format=iife --define:global=globalThis --outfile=../../raincats/mint.js`.
+- `tools/nft/`: the generator (`generate.js`), the Irys upload (`upload.js`), the Core Candy Machine deploy (`deploy.js`), and the mint tests (`minttest.js`, `mint-e2e.js`). Keypairs live outside the repo and are never committed.
+- Rarity report: `docs/raincats-rarity.md`.
+- Deep links: `?mint` opens the mint panel and `?mint=mine` opens My Rain Cats.

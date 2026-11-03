@@ -88,3 +88,49 @@ body.cm #pad,body.cm #btnA,body.cm #prompt,body.cm #dialog{display:none!importan
   #cmStage{width:min(62vw,240px)}
   .trait{grid-template-columns:64px 36px 1fr 36px 40px}
 }
+
+/* ---- Rain Cats mint ---- */
+#cmActions .mintcta{grid-column:1/-1;background:var(--yellow,#ffd66b)}
+#rcPanel{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(96vw,520px);max-height:92vh;max-height:92dvh;overflow:auto;padding:16px;z-index:13;-webkit-overflow-scrolling:touch;touch-action:pan-y}
+#rcPanel h2{font-size:14px;color:var(--pink);margin:0 0 12px;font-weight:normal;text-shadow:2px 2px 0 #000}
+.rcnet{font-size:7px;vertical-align:middle;padding:3px 5px;border:2px solid var(--yellow,#ffd66b);color:var(--yellow,#ffd66b);margin-left:6px}
+.rcnet.main{border-color:var(--mint);color:var(--mint)}
+#rcClose{position:absolute;top:6px;right:8px;background:none;border:0;font-size:24px;font-family:system-ui,sans-serif;padding:4px 10px}
+#rcTabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+#rcTabs button{font-size:8px;padding:10px 4px;min-height:40px;background:#151a2e;color:var(--ink);border:3px solid #2a3150}
+#rcTabs button.on{border-color:var(--ink);background:#20263d}
+#rcWallet{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:8px;margin-bottom:12px;flex-wrap:wrap}
+#rcWallet button{font-size:8px;padding:9px 8px;min-height:40px;background:#ab9ff2;color:#0d1020;border:3px solid var(--ink);box-shadow:3px 3px 0 #000}
+#rcAddr{color:#8a95b8;line-height:1.6}
+#rcCount{font-size:9px;text-align:center;margin-bottom:6px}
+#rcBar{height:10px;border:2px solid var(--ink);background:#0d1020;margin-bottom:12px}
+#rcBar i{display:block;height:100%;width:0;background:var(--mint)}
+#rcStage{position:relative;width:min(100%,224px);aspect-ratio:1/1;margin:0 auto 12px;border:4px solid var(--ink);box-shadow:4px 4px 0 #000;background:#0d1020}
+#rcBox{width:100%;height:100%;display:block;image-rendering:pixelated;image-rendering:crisp-edges}
+#rcStage.shake{animation:shake .5s steps(6) infinite}
+#rcMint{display:block;width:100%;font-size:11px;line-height:1.5;padding:14px 8px;background:var(--pink);color:#0d1020;border:4px solid var(--ink);box-shadow:4px 4px 0 #000;font-family:"PS2P",monospace;margin-top:4px}
+#rcMint.free{background:var(--mint)}
+#rcMint:disabled{opacity:.55}
+#rcMint:active,.rcActs button:active,#rcWallet button:active{transform:translate(2px,2px);box-shadow:1px 1px 0 #000}
+#rcStatus{font-size:8px;line-height:1.7;text-align:center;margin:10px 0 0;min-height:14px;color:#cfd8ee;word-break:break-word}
+#rcStatus.err{color:#ff8fa3}
+#rcNote,#rcMineNote{font-size:7px;line-height:1.8;color:#8a95b8;margin-top:10px}
+#rcRName{text-align:center;font-size:10px;line-height:1.6;margin:0 0 6px}
+#rcRRarityWrap{text-align:center;margin-bottom:10px}
+#rcRRarity{display:inline-block;font-size:8px;padding:5px 8px;border:2px solid currentColor}
+.rar-super-rare{color:#ffd66b;background:linear-gradient(90deg,#ff5a6e33,#ffd66b33,#7ad97a33,#6bc6ff33,#b78bff33)}
+#rcRTraits{display:grid;grid-template-columns:1fr 1fr;gap:4px 10px;font-size:7px;line-height:1.6;margin-bottom:10px}
+#rcRTraits b{color:#8a95b8;font-weight:normal;display:block}
+#rcRLinks{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:10px}
+#rcRLinks a{font-size:8px;color:var(--mint)}
+.rcActs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.rcActs button{font-size:8px;line-height:1.5;padding:10px 6px;min-height:44px;background:var(--mint);color:#0d1020;border:3px solid var(--ink);box-shadow:3px 3px 0 #000}
+.rcActs button.alt{background:var(--ink)}
+#rcAgain{grid-column:1/-1}
+#rcMineList{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+.rcCard{border:3px solid var(--ink);background:#151a2e;padding:6px;text-align:center;font-size:7px;line-height:1.6}
+.rcCard canvas{width:100%;aspect-ratio:1/1;image-rendering:pixelated;display:block;margin-bottom:6px}
+.rcCard .rcActs{grid-template-columns:1fr;gap:6px;margin:6px 0 0}
+.rcCard .rcActs button{min-height:36px;padding:7px 4px;font-size:7px}
+body.rc #pad,body.rc #btnA,body.rc #prompt,body.rc #dialog,body.rc #catmaker{display:none!important}
+@media (max-width:680px){#rcPanel{left:2vw;right:2vw;width:auto;top:calc(env(safe-area-inset-top) + 8px);transform:none;max-height:calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 16px);padding:14px 12px}}

@@ -5,3 +5,8 @@ node_modules/
 *.log
 .DS_Store
 .vercel
+rc-local
+.raincats/
+authority*.json
+*keypair*.json
+id.json
