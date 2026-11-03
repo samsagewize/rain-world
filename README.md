@@ -2,7 +2,7 @@
 
 A small pixel-art world for Rain, the cat assistant, with a landmark for everything Christian and Rain have built together. Walk up to a building and a pixel card pops up with what it is and a link.
 
-**Play:** https://rain-world.vercel.app
+**Play:** https://rain-world-beta.vercel.app
 
 ![Rain's World](docs/world.png)
 
