@@ -64,20 +64,58 @@ function catRows(dir) {
   return rows;
 }
 const catCache = new Map();
+const CAT_RAINBOW = ['#ff5a6e', '#f6a04d', '#ffd66b', '#7ad97a', '#6bc6ff', '#b78bff'];
+function catGrid(look, d) {
+  const rows = catRows(d), G = [];
+  for (let y = 0; y < 16; y++) { G[y] = []; for (let x = 0; x < 16; x++) {
+    const ch = rows[y][x]; let col = null;
+    if (ch === 'o') col = look.o || C.out; else if (ch === 'f') col = look.f; else if (ch === 'l') col = look.l;
+    else if (ch === 'e') col = look.e2 && x >= 8 ? look.e2 : look.e; else if (ch === 'k') col = C.out; else if (ch === 'n') col = C.pink;
+    else if (ch === 'p') col = look.ear || C.pink; else if (ch === 'c') col = look.rainbow ? CAT_RAINBOW[x % 6] : (look.c || look.f);
+    G[y][x] = col; } }
+  const isF = (x, y) => rows[y] && rows[y][x] === 'f';
+  const set = (pts, col) => pts.forEach(([x, y]) => { if (isF(x, y)) G[y][x] = col; });
+  if (look.earTip) set([[3, 2], [12, 2], [3, 3], [12, 3]], look.earTip);
+  if (look.calico) { set([[4, 4], [5, 4], [4, 5], [5, 5], [11, 12], [12, 12], [12, 11]], '#e08a3c'); set([[10, 4], [11, 4], [11, 5], [3, 12], [4, 12], [3, 13]], '#2e3150'); }
+  if (look.galaxy) set([[5, 4], [10, 5], [3, 9], [12, 9], [6, 12], [11, 13], [8, 4], [13, 6]], '#ffffff'), set([[7, 5], [4, 13], [12, 4]], C.mint);
+  const m = look.mark, W = '#f4f6fb', all = [];
+  for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) all.push([x, y]);
+  switch (look.pattern) {
+    case 'spots': set([[5, 4], [6, 4], [12, 5], [3, 11], [4, 11], [12, 13], [11, 13], [9, 12]], m); break;
+    case 'tabby': if (d === 'up') set(all.filter(([x, y]) => (y === 5 || y === 8 || y === 12) && x > 2 && x < 13), m);
+      else set([[5, 4], [7, 4], [8, 4], [10, 4], [7, 5], [8, 5], [2, 6], [13, 6], [2, 8], [13, 8], [3, 11], [12, 11], [3, 13], [12, 13]], m); break;
+    case 'tuxedo': set(all.filter(([x, y]) => (y >= 9 && y <= 14 && x >= 5 && x <= 10 && d !== 'up') || y === 14), W); break;
+    case 'socks': set(all.filter(([x, y]) => y === 14 || (y === 13 && (x < 5 || x > 10))), W); break;
+    case 'patch': if (d !== 'up') set(all.filter(([x, y]) => y >= 4 && y <= 8 && (d === 'side' ? x >= 5 && x <= 8 : x >= 2 && x <= 6)), m); break;
+  }
+  if (look.spots) set([[4, 4], [5, 4], [4, 5], [5, 5], [10, 11], [11, 11], [10, 12], [11, 12]], look.spots);
+  if (d !== 'up' && look.face && look.face !== 'none') {
+    const EL = d === 'side' ? [6, 7] : [4, 5], ER = d === 'side' ? [11, 12] : [10, 11], o = look.o || C.out;
+    const shut = cols => cols.forEach(x => { G[6][x] = look.f; G[7][x] = o; });
+    if (look.face === 'blush') set(d === 'side' ? [[6, 8], [7, 8], [12, 8], [13, 8]] : [[3, 8], [4, 8], [11, 8], [12, 8]], '#ff6f9a');
+    if (look.face === 'whiskers') { const wc = '#cfd8ee'; G[8][15] = wc; G[9][15] = wc; if (d !== 'side') { G[8][0] = wc; G[9][0] = wc; } }
+    if (look.face === 'sleepy') { shut(EL); shut(ER); }
+    if (look.face === 'wink') shut(ER);
+    if (look.face === 'glasses') {
+      const gc = look.dark ? '#cfd8ee' : '#1b1d33';
+      [EL, ER].forEach(([a, b]) => { for (let x = a - 1; x <= b + 1; x++) { if (G[5][x]) G[5][x] = gc; if (d !== 'side' && G[8][x] && rows[8][x] === 'f') G[8][x] = gc; } [6, 7].forEach(y => { G[y][a - 1] = gc; G[y][b + 1] = gc; }); });
+      G[6][EL[1] + 2] = gc; if (EL[1] + 3 < ER[0] - 1) G[6][EL[1] + 3] = gc;
+    }
+  }
+  return G;
+}
 function catSprite(pal, dir, frame) {
   const key = pal.name + dir + frame;
   if (catCache.has(key)) return catCache.get(key);
   const d = dir === 'left' || dir === 'right' ? 'side' : dir;
-  const rows = catRows(d);
+  const G = catGrid(pal, d);
   const [c, x] = mk(16, 16);
-  const map = { o: pal.o || C.out, f: pal.f, l: pal.l, e: pal.e, k: C.out, n: C.pink, p: C.pink, c: pal.c };
   const off = frame ? 1 : 0;
   for (let y = 0; y < 16; y++) for (let i = 0; i < 16; i++) {
-    let ch = rows[y][i];
-    if (frame && y === 14) ch = (i === 5 || i === 10) ? 'f' : ch; // stride
-    if (ch !== '.' && map[ch]) { x.fillStyle = map[ch]; x.fillRect(dir === 'left' ? 15 - i : i, y - (y < 14 ? off : 0), 1, 1); }
+    let col = G[y][i];
+    if (frame && y === 14 && (i === 5 || i === 10)) col = G[14][i === 5 ? 4 : 11];
+    if (col) { x.fillStyle = col; x.fillRect(dir === 'left' ? 15 - i : i, y - (y < 14 ? off : 0), 1, 1); }
   }
-  if (pal.spots) { x.fillStyle = pal.spots; x.fillRect(4, 4 - off, 2, 2); x.fillRect(10, 11 - off, 2, 2); }
   catCache.set(key, c);
   return c;
 }
@@ -103,6 +141,7 @@ function tileKind(tx, ty) {
   if (inR(tx, ty, 10, 32, 12, 39)) return 'path';
   if (inR(tx, ty, 51, 24, 53, 28)) return 'path';
   if (inR(tx, ty, 40, 17, 42, 28)) return 'path';
+  if (inR(tx, ty, 49, 32, 50, 41)) return 'path';
   if (inR(tx, ty, 45, 16, 60, 28)) return 'desk';
   if (inR(tx, ty, 2, 2, 21, 17)) return 'village';
   return 'ground';
@@ -445,7 +484,7 @@ function tree(px, py, v) {
   } });
   solid(px - 3, py - 4, 7, 4);
 }
-const RESERVED = [[25, 4, 38, 17], [38, 12, 45, 18], [5, 31, 17, 40], [45, 15, 61, 29], [27, 39, 37, 46], [26, 17, 38, 28]];
+const RESERVED = [[25, 4, 38, 17], [38, 12, 45, 18], [5, 31, 17, 40], [45, 15, 61, 29], [27, 39, 37, 46], [26, 17, 38, 28], [43, 32, 57, 43]];
 const reserved = (tx, ty) => RESERVED.some(([a, b, c, d]) => inR(tx, ty, a, b, c, d)) || HOUSES.some(([hx, hy]) => inR(tx, ty, hx - 1, hy - 1, hx + 3, hy + 3)) || inR(tx, ty, 10, 16, 14, 18);
 for (let i = 0; i < 140; i++) {
   const tx = 2 + (rand() * 60 | 0), ty = 3 + (rand() * 43 | 0);
@@ -513,6 +552,7 @@ let tapTarget = null;
 const KEYMAP = { ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down', ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right' };
 addEventListener('keydown', e => {
   if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+  if (cmIsOpen()) { if (e.code === 'Escape') cmClose(); else if (e.code === 'KeyR') { e.preventDefault(); cmRandomize(); } return; }
   const d = KEYMAP[e.code];
   if (d) { keys.add(d); tapTarget = null; e.preventDefault(); hideToast(); }
   else if (e.code === 'KeyE' || e.code === 'Enter' || e.code === 'Space') { if (document.activeElement && document.activeElement.tagName === 'A') return; e.preventDefault(); interact(); }
@@ -598,6 +638,7 @@ function drawIcon(kind, col) {
     case 'shield': for (let y = 0; y < 15; y++) { const w = y < 8 ? 12 : 12 - (y - 7) * 2; r((16 - w) / 2, 1 + y, w, 1, C.orange); } r(7, 4, 2, 6, '#fff4e0'); r(5, 6, 6, 2, '#fff4e0'); break;
     case 'chart': r(1, 1, 14, 14, '#06070f'); [[2, 12], [4, 10], [6, 11], [8, 7], [10, 8], [12, 4], [13, 3]].forEach(([x, y]) => r(x, y, 2, 1, C.mint)); r(1, 14, 14, 1, C.purple); break;
     case 'bot': r(7, 0, 2, 3, '#c9d3ea'); r(3, 3, 10, 7, '#c9d3ea'); r(4, 4, 8, 5, C.out); r(5, 5, 2, 2, col); r(9, 5, 2, 2, col); r(4, 10, 8, 6, col); break;
+    case 'catmaker': ic.drawImage(catSprite(lookFrom(cmWindowCats[Math.floor(Date.now() / 1000) % 8 || 0]), 'down', 0), 0, 0); break;
     case 'icon': if (iconPix) ic.drawImage(iconPix, 0, 0, 16, 16); break;
     case 'feed': r(2, 2, 12, 12, C.ink); for (let i = 0; i < 3; i++) { r(4, 4 + i * 3, 2, 2, C.mint); r(7, 4 + i * 3, 5, 1, '#6c789e'); } break;
     case 'jup': ring(ic, 8, 8, 6, C.mint); ring(ic, 8, 8, 4, C.yellow); ring(ic, 8, 8, 2, C.sky); r(7, 7, 2, 2, C.ink); break;
@@ -613,7 +654,7 @@ function openDialog(t) {
   if (c.media && c.media.type === 'img') { const im = new Image(); im.src = c.media.src; im.alt = c.media.alt || ''; media.appendChild(im); }
   if (c.media && c.media.type === 'video') { const v = document.createElement('video'); v.src = c.media.src; v.controls = true; v.playsInline = true; v.setAttribute('playsinline', ''); v.muted = !soundOn; v.preload = 'metadata'; media.appendChild(v); }
   const links = $('dlgLinks'); links.innerHTML = '';
-  (c.links || []).forEach(l => { const a = document.createElement('a'); a.href = l.href; a.target = '_blank'; a.rel = 'noopener'; a.textContent = l.label; if (l.alt) a.className = 'alt'; links.appendChild(a); });
+  (c.links || []).forEach(l => { if (l.action) { const b = document.createElement('button'); b.className = 'act'; b.textContent = l.label; b.addEventListener('click', () => cmOpen()); links.appendChild(b); return; } const a = document.createElement('a'); a.href = l.href; a.target = '_blank'; a.rel = 'noopener'; a.textContent = l.label; if (l.alt) a.className = 'alt'; links.appendChild(a); });
   $('dlgCredit').textContent = c.credit || '';
   drawIcon(c.icon[0], c.icon[1]);
   dlg.classList.remove('hidden'); document.body.classList.add('dlg');
@@ -633,7 +674,7 @@ function nearest() {
 }
 function interact() {
   const n = nearest();
-  if (n) { if (openId === n.id) closeDialog(true); else { dismissed.delete(n.id); openDialog(n); } }
+  if (n) { if (openId === n.id && n.id === 'catmaker') cmOpen(); else if (openId === n.id) closeDialog(true); else { dismissed.delete(n.id); openDialog(n); } }
 }
 let nearT = null;
 function updateProximity() {
@@ -649,7 +690,7 @@ function updateProximity() {
 const places = $('places');
 function buildPlaces() {
   const list = $('placesList'); list.innerHTML = '';
-  targets.filter(t => t.kind !== 'bot').forEach(t => {
+  targets.filter(t => t.kind !== 'bot').sort((a, b) => (a.kind === 'main' ? 0 : 1) - (b.kind === 'main' ? 0 : 1)).forEach(t => {
     const b = document.createElement('button');
     b.innerHTML = '';
     b.textContent = t.name; const s = document.createElement('small'); s.textContent = t.card.tag; b.appendChild(s);
@@ -749,9 +790,9 @@ function update(dt) {
 }
 
 // ---------- render ----------
-function drawCloud(g, x, y) {
-  R(g, x - 6, y - 2, 12, 4, '#f3f6ff'); R(g, x - 4, y - 4, 5, 2, '#f3f6ff'); R(g, x + 1, y - 5, 4, 3, '#f3f6ff');
-  R(g, x - 7, y - 1, 1, 2, '#c9d3ea'); R(g, x + 6, y - 1, 1, 2, '#c9d3ea'); R(g, x - 6, y + 2, 12, 1, '#b4c1e2');
+function drawCloud(g, x, y, a = '#f3f6ff', b = '#c9d3ea', c = '#b4c1e2') {
+  R(g, x - 6, y - 2, 12, 4, a); R(g, x - 4, y - 4, 5, 2, a); R(g, x + 1, y - 5, 4, 3, a);
+  R(g, x - 7, y - 1, 1, 2, b); R(g, x + 6, y - 1, 1, 2, b); R(g, x - 6, y + 2, 12, 1, c);
 }
 function render() {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -766,14 +807,17 @@ function render() {
   for (const n of npcs) ents.push({ y: n.y, draw: g => {
     R(g, n.x - 5, n.y - 1, 10, 2, 'rgba(0,0,0,0.35)');
     g.drawImage(catSprite(n.pal, n.dir, n.frame), Math.round(n.x - 8), Math.round(n.y - 15));
-    if (n.meow > 0) { const w = textW('MEOW') + 6; box(g, Math.round(n.x - w / 2), Math.round(n.y - 28), w, 9, C.ink); text(g, 'MEOW', Math.round(n.x - w / 2 + 3), Math.round(n.y - 26), C.out); }
+    if (n.pal.acc && n.pal.acc !== 'none') drawAcc(g, n.pal.acc, Math.round(n.x - 8), Math.round(n.y - 15) - (n.frame ? 1 : 0), time);
+    if (n.meow > 0) { const s = n.label || 'MEOW', w = textW(s) + 6, by = Math.round(n.y - (n.pal.acc && n.pal.acc !== 'none' ? 38 : 28)); box(g, Math.round(n.x - w / 2), by, w, 9, C.ink); text(g, s, Math.round(n.x - w / 2 + 3), by + 2, C.out); }
   } });
   ents.push({ y: player.y, draw: g => {
     const px = Math.round(player.x), py = Math.round(player.y);
     R(g, px - 6, py - 1, 12, 2, 'rgba(0,0,0,0.4)');
-    g.drawImage(catSprite(RAIN, player.dir, player.frame), px - 8, py - 15);
-    g.fillStyle = '#9cc4ff'; for (const d of myDrops) g.fillRect(Math.round(d.x), Math.round(d.y), 1, 2);
-    drawCloud(g, px + (Math.sin(time * 2) > 0 ? 1 : 0), py - 24 + Math.round(Math.sin(time * 2.4)));
+    const look = meLook || RAIN, acc = meLook ? meLook.acc : 'rain';
+    g.drawImage(catSprite(look, player.dir, player.frame), px - 8, py - 15);
+    if (acc === 'rain') { g.fillStyle = '#9cc4ff'; for (const d of myDrops) g.fillRect(Math.round(d.x), Math.round(d.y), 1, 2); }
+    const floaty = acc === 'rain' || acc === 'snow' || acc === 'storm' || acc === 'sun' || acc === 'star';
+    drawAcc(g, acc, px - 8 + (floaty && Math.sin(time * 2) > 0 ? 1 : 0), py - 15 + (floaty ? Math.round(Math.sin(time * 2.4)) : (player.frame ? -1 : 0)), time, true);
   } });
   ents.sort((a, b) => a.y - b.y);
   for (const e of ents) e.draw(ctx, time);
@@ -818,10 +862,301 @@ function loop(now) {
   requestAnimationFrame(loop);
 }
 
+// ======================================================================
+// ---------- CAT MAKER ----------
+// ======================================================================
+const RAINBOW = ['#ff5a6e', '#f6a04d', '#ffd66b', '#7ad97a', '#6bc6ff', '#b78bff'];
+const CM = {
+  fur: [
+    { n: 'Rain blue-gray', c: '#8ea6d6', m: '#5f77a8', t: 0 }, { n: 'Ginger', c: '#f0a050', m: '#c06a28', t: 0 },
+    { n: 'Black', c: '#2e3150', m: '#1b1d33', o: '#04050a', dark: 1, t: 0 }, { n: 'White', c: '#e6e9f3', m: '#b9bfd3', t: 0 },
+    { n: 'Cream', c: '#f3dcb0', m: '#d2ad74', t: 0 }, { n: 'Smoke gray', c: '#9aa0b3', m: '#6c7286', t: 0 },
+    { n: 'Calico', c: '#f3e6d3', m: '#e08a3c', calico: 1, t: 1 }, { n: 'Lilac', c: '#b9a2e0', m: '#8c71c2', t: 1 },
+    { n: 'Mint', c: '#7fe8c4', m: '#3fb98f', t: 2 }, { n: 'Pink', c: '#ff9ec0', m: '#e06c96', t: 2 },
+    { n: 'Gold', c: '#f2c94c', m: '#c99a1e', t: 3 }, { n: 'Galaxy', c: '#3a2a6e', m: '#5b3bb0', o: '#06040f', galaxy: 1, dark: 1, t: 3 }],
+  belly: [
+    { n: 'Cloud white', c: '#dfe8fb', t: 0 }, { n: 'Cream', c: '#fde2c0', t: 0 }, { n: 'Snow', c: '#ffffff', t: 0 },
+    { n: 'Peach', c: '#ffc8a8', t: 1 }, { n: 'Lavender', c: '#e2d6ff', t: 1 }, { n: 'Same as fur', c: null, t: 1 },
+    { n: 'Mint', c: '#c8fff0', t: 2 }, { n: 'Gold', c: '#ffe9a8', t: 2 }],
+  eyes: [
+    { n: 'Mint', c: C.mint, t: 0 }, { n: 'Gold', c: '#ffd66b', t: 0 }, { n: 'Sky blue', c: '#6bc6ff', t: 0 }, { n: 'Green', c: '#7ad97a', t: 0 },
+    { n: 'Amber', c: '#ffb86b', t: 1 }, { n: 'Pink', c: '#ff8fb1', t: 1 }, { n: 'Violet', c: '#b78bff', t: 2 }, { n: 'Ruby', c: '#ff5a6e', t: 2 },
+    { n: 'Odd eyes', c: '#6bc6ff', c2: '#ffd66b', t: 3 }],
+  collar: [
+    { n: 'Mint', c: C.mint, t: 0 }, { n: 'Pink', c: C.pink, t: 0 }, { n: 'Red', c: '#ff6b6b', t: 0 }, { n: 'Purple', c: C.purple, t: 0 },
+    { n: 'Yellow', c: C.yellow, t: 0 }, { n: 'Sky', c: C.sky, t: 0 }, { n: 'Navy', c: '#2a3150', t: 1 }, { n: 'No collar', c: null, t: 1 },
+    { n: 'Rainbow', rainbow: 1, c: '#ffd66b', t: 3 }],
+  pattern: [
+    { n: 'None', id: 'none', t: 0 }, { n: 'Spots', id: 'spots', t: 1 }, { n: 'Tabby stripes', id: 'tabby', t: 0 },
+    { n: 'Tuxedo', id: 'tuxedo', t: 1 }, { n: 'Socks', id: 'socks', t: 1 }, { n: 'Eye patch', id: 'patch', t: 2 }],
+  ears: [
+    { n: 'Classic pink', ear: C.pink, t: 0 }, { n: 'Mint tips', ear: C.mint, tip: C.mint, t: 1 }, { n: 'Black tips', ear: '#2e3150', tip: '#1b1d33', t: 1 },
+    { n: 'White tips', ear: '#ffffff', tip: '#ffffff', t: 1 }, { n: 'Lilac tips', ear: '#b78bff', tip: '#b78bff', t: 1 }, { n: 'Gold tips', ear: C.yellow, tip: C.yellow, t: 2 }],
+  acc: [
+    { n: 'Rain cloud', id: 'rain', t: 1 }, { n: 'Sun', id: 'sun', t: 1 }, { n: 'Lightning cloud', id: 'storm', t: 2 }, { n: 'Snow cloud', id: 'snow', t: 1 },
+    { n: 'Star', id: 'star', t: 1 }, { n: 'Crown', id: 'crown', t: 3 }, { n: 'Halo', id: 'halo', t: 2 }, { n: 'Headphones', id: 'phones', t: 1 },
+    { n: 'Party hat', id: 'party', t: 1 }, { n: 'Flower', id: 'flower', t: 0 }, { n: 'Nothing', id: 'none', t: 0 }],
+  face: [
+    { n: 'None', id: 'none', t: 0 }, { n: 'Blush', id: 'blush', t: 0 }, { n: 'Whiskers', id: 'whiskers', t: 0 },
+    { n: 'Sleepy eyes', id: 'sleepy', t: 1 }, { n: 'Wink', id: 'wink', t: 1 }, { n: 'Glasses', id: 'glasses', t: 2 }],
+  bg: [{ n: 'Dark navy', id: 'navy' }, { n: 'Mint glow', id: 'mint' }, { n: 'Sunset', id: 'sunset' }, { n: 'Galaxy', id: 'galaxy' }, { n: 'Transparent', id: 'clear' }],
+  title: ['', '', '', '', 'Sir', 'Lady', 'Captain', 'Professor', 'Little', 'Big', 'DJ', 'Agent', 'Lord', 'Duchess'],
+  first: ['Rain', 'Mochi', 'Pixel', 'Biscuit', 'Nimbus', 'Pebble', 'Sprout', 'Waffle', 'Comet', 'Noodle', 'Juniper', 'Tofu', 'Ziggy', 'Bean', 'Echo', 'Mango',
+    'Pudding', 'Sable', 'Cosmo', 'Miso', 'Clover', 'Pip', 'Taro', 'Boba', 'Luna', 'Olive', 'Peanut', 'Fig', 'Sushi', 'Nova', 'Maple', 'Gizmo', 'Toast', 'Kiwi', 'Momo', 'Yuzu'],
+  last: ['', '', '', 'Paws', 'Whiskers', 'McFluff', 'Moonbeam', 'Purrington', 'Sparks', 'Drizzle', 'von Meow', 'Jr', 'Beans', 'Sprinkles', 'Starlight', 'Thunderpaw', 'Puddles', 'Fuzz']
+};
+const CM_KEYS = ['fur', 'belly', 'eyes', 'collar', 'pattern', 'ears', 'acc', 'face', 'bg', 'title', 'first', 'last'];
+const CM_ROWS = [['fur', 'FUR'], ['belly', 'BELLY'], ['eyes', 'EYES'], ['collar', 'COLLAR'], ['pattern', 'PATTERN'], ['ears', 'EAR TIPS'], ['acc', 'ON TOP'], ['face', 'FACE'], ['bg', 'BACKDROP']];
+const RAIN_V = { fur: 0, belly: 0, eyes: 0, collar: 0, pattern: 0, ears: 0, acc: 0, face: 0, bg: 0, title: 0, first: 0, last: 0 };
+const cmCode = v => CM_KEYS.map(k => v[k].toString(36)).join('');
+function cmParse(s) {
+  if (!s || !/^[0-9a-z]{12}$/.test(s)) return null;
+  const v = {};
+  for (let i = 0; i < 12; i++) { const k = CM_KEYS[i], n = parseInt(s[i], 36); if (n >= CM[k].length) return null; v[k] = n; }
+  return v;
+}
+const cmName = v => [CM.title[v.title], CM.first[v.first], CM.last[v.last]].filter(Boolean).join(' ');
+function cmRarity(v) {
+  const s = ['fur', 'belly', 'eyes', 'collar', 'pattern', 'ears', 'acc', 'face'].reduce((a, k) => a + CM[k][v[k]].t, 0);
+  return s >= 8 ? 'Legendary' : s >= 6 ? 'Epic' : s >= 4 ? 'Rare' : 'Common';
+}
+function cmPick(k) {
+  const list = CM[k];
+  if (typeof list[0] !== 'object' || k === 'bg') return Math.floor(Math.random() * list.length);
+  const W = [8, 4, 2, 1]; let sum = 0; for (const o of list) sum += W[o.t];
+  let r = Math.random() * sum; for (let i = 0; i < list.length; i++) { r -= W[list[i].t]; if (r <= 0) return i; }
+  return 0;
+}
+const lookCache = new Map();
+function lookFrom(v) {
+  const code = cmCode(v);
+  if (lookCache.has(code)) return lookCache.get(code);
+  const fur = CM.fur[v.fur], b = CM.belly[v.belly], e = CM.eyes[v.eyes], co = CM.collar[v.collar], ea = CM.ears[v.ears];
+  const look = { name: 'cm' + code, code, f: fur.c, o: fur.o, l: b.c || fur.c, e: e.c, e2: e.c2, c: co.c || fur.c, rainbow: co.rainbow,
+    ear: ea.ear, earTip: ea.tip, mark: fur.m, galaxy: fur.galaxy, calico: fur.calico, dark: fur.dark,
+    pattern: CM.pattern[v.pattern].id, face: CM.face[v.face].id, acc: CM.acc[v.acc].id };
+  lookCache.set(code, look);
+  return look;
+}
+
+// accessories, drawn relative to the 16x16 sprite's top-left (ox, oy)
+function drawAcc(g, id, ox, oy, t, noDrops) {
+  const cx = ox + 8;
+  switch (id) {
+    case 'rain': drawCloud(g, cx, oy - 9); if (!noDrops) for (let i = 0; i < 3; i++) R(g, ox + 4 + i * 4, oy - 6 + Math.floor((t * 18 + i * 3) % 7), 1, 2, '#9cc4ff'); break;
+    case 'snow': drawCloud(g, cx, oy - 9); for (let i = 0; i < 3; i++) R(g, ox + 4 + i * 4 + (Math.floor(t * 3 + i) % 2), oy - 6 + Math.floor((t * 8 + i * 3) % 7), 1, 1, '#ffffff'); break;
+    case 'storm': drawCloud(g, cx, oy - 9, '#8a93ad', '#6c7590', '#5a6380');
+      if (Math.floor(t * 3) % 4 !== 3) { R(g, cx, oy - 6, 2, 1, C.yellow); R(g, cx - 1, oy - 5, 2, 1, C.yellow); R(g, cx, oy - 4, 2, 1, C.yellow); R(g, cx - 1, oy - 3, 1, 1, C.yellow); } break;
+    case 'sun': { const y = oy - 8, k = Math.floor(t * 2) % 2;
+      R(g, cx - 2, y - 2, 5, 5, C.yellow); R(g, cx - 1, y - 3, 3, 1, C.yellow); R(g, cx - 1, y + 3, 3, 1, C.yellow); R(g, cx - 3, y - 1, 1, 3, C.yellow); R(g, cx + 3, y - 1, 1, 3, C.yellow);
+      R(g, cx - 1, y - 1, 2, 2, '#fff3b0');
+      const rays = k ? [[0, -5], [0, 5], [-5, 0], [5, 0]] : [[-4, -4], [4, -4], [-4, 4], [4, 4]];
+      rays.forEach(([dx, dy]) => R(g, cx + dx, y + dy, 1, 1, C.orange)); break; }
+    case 'star': { const y = oy - 7;
+      [[-3, 0, 0], [-2, 0, 0], [-1, -3, 3], [0, -2, 2], [1, -1, 1], [2, -2, -1], [2, 1, 2], [3, -2, -2], [3, 2, 2]].forEach(([dy, a, b2]) => R(g, cx + a, y + dy, b2 - a + 1, 1, C.yellow));
+      R(g, cx, y - 1, 1, 1, '#fff3b0'); if (Math.floor(t * 2) % 3 === 0) { R(g, cx + 5, y - 4, 1, 1, '#ffffff'); R(g, cx - 5, y + 2, 1, 1, '#ffffff'); } break; }
+    case 'crown': R(g, ox + 5, oy + 1, 6, 2, C.yellow); R(g, ox + 5, oy - 1, 1, 2, C.yellow); R(g, ox + 7, oy - 2, 2, 3, C.yellow); R(g, ox + 10, oy - 1, 1, 2, C.yellow);
+      R(g, ox + 7, oy + 1, 2, 1, C.red); R(g, ox + 5, oy + 2, 6, 1, '#c99a1e'); if (Math.floor(t * 2) % 3 === 0) R(g, ox + 8, oy - 2, 1, 1, '#ffffff'); break;
+    case 'halo': R(g, ox + 4, oy - 4, 8, 1, C.yellow); R(g, ox + 3, oy - 3, 1, 1, C.yellow); R(g, ox + 12, oy - 3, 1, 1, C.yellow); R(g, ox + 4, oy - 2, 8, 1, '#fff3b0'); break;
+    case 'phones': R(g, ox + 2, oy - 1, 12, 1, '#2a3150'); R(g, ox + 3, oy - 2, 10, 1, '#4a5390'); R(g, ox + 1, oy, 1, 5, '#2a3150'); R(g, ox + 14, oy, 1, 5, '#2a3150');
+      box(g, ox - 1, oy + 4, 3, 5, C.pink); box(g, ox + 14, oy + 4, 3, 5, C.pink); break;
+    case 'party': [2, 2, 4, 4, 6, 6].forEach((w, r) => R(g, cx - w / 2, oy - 5 + r, w, 1, r % 2 ? C.pink : C.yellow)); R(g, cx - 4, oy + 1, 8, 1, C.mint); R(g, cx - 1, oy - 7, 2, 2, '#ffffff'); break;
+    case 'flower': R(g, ox + 12, oy - 1, 1, 1, '#ffffff'); R(g, ox + 11, oy, 1, 1, '#ffffff'); R(g, ox + 13, oy, 1, 1, '#ffffff'); R(g, ox + 12, oy + 1, 1, 1, '#ffffff'); R(g, ox + 12, oy, 1, 1, C.yellow); R(g, ox + 10, oy + 1, 1, 1, '#7ad97a'); break;
+  }
+}
+
+// backdrop + cat at 32x32 (the "portrait")
+function pxCircle(g, cx, cy, r, col) { g.fillStyle = col; for (let y = -r; y <= r; y++) for (let x = -r; x <= r; x++) if (x * x + y * y <= r * r) g.fillRect(cx + x, cy + y, 1, 1); }
+function renderPortrait(g, v, t) {
+  g.clearRect(0, 0, 32, 32);
+  const bg = CM.bg[v.bg].id;
+  if (bg === 'navy') { R(g, 0, 0, 32, 32, '#0d1020'); [[3, 4], [27, 6], [6, 22], [24, 2], [29, 19], [14, 3]].forEach(([x, y]) => R(g, x, y, 1, 1, '#3a4470')); R(g, 0, 30, 32, 2, '#151a2e'); }
+  if (bg === 'mint') { R(g, 0, 0, 32, 32, '#0b1f22'); pxCircle(g, 16, 20, 15, '#0f2b2c'); pxCircle(g, 16, 20, 12, '#13413b'); pxCircle(g, 16, 20, 9, '#17614f'); }
+  if (bg === 'sunset') { ['#2b1d4f', '#4a2466', '#7a3070', '#b0436c', '#e0605e', '#f0884f', '#f6a04d', '#ffd66b'].forEach((c, i) => R(g, 0, i * 4, 32, 4, c)); }
+  if (bg === 'galaxy') { R(g, 0, 0, 32, 32, '#120a2a'); pxCircle(g, 8, 9, 6, '#24134f'); pxCircle(g, 25, 24, 7, '#2a1656'); pxCircle(g, 24, 8, 3, '#3b1e70');
+    [[3, 3], [12, 2], [28, 4], [20, 12], [5, 16], [29, 14], [2, 27], [18, 29], [10, 25]].forEach(([x, y], i) => R(g, x, y, 1, 1, i % 3 === 0 ? C.mint : i % 3 === 1 ? '#ffffff' : C.pink)); }
+  const look = lookFrom(v), ox = 8, oy = 14;
+  if (bg !== 'clear') R(g, ox + 3, oy + 15, 10, 1, 'rgba(0,0,0,0.35)');
+  g.drawImage(catSprite(look, 'down', 0), ox, oy);
+  drawAcc(g, look.acc, ox, oy, t);
+}
+
+// ---- building ----
+const CMB = { x: 728, y: 41 * T, w: 144, h: 104 };
+const cmWindowCats = Array.from({ length: 8 }, () => { const v = {}; CM_KEYS.forEach(k => v[k] = cmPick(k)); return v; });
+(function catMakerBuilding() {
+  const [c, x] = mk(CMB.w, CMB.h);
+  const W = CMB.w, H = CMB.h;
+  // cat-ear roof
+  for (let i = 0; i < 26; i++) { const w = Math.round(i * 1.4); R(x, 16 + 18 - w, 8 + i, w * 2 + 1, 1, '#5b3bb0'); R(x, W - 16 - 18 - w - 1, 8 + i, w * 2 + 1, 1, '#5b3bb0'); }
+  for (let i = 6; i < 24; i++) { const w = Math.round((i - 6) * 0.8); R(x, 34 - w, 8 + i, w * 2 + 1, 1, C.pink); R(x, W - 35 - w, 8 + i, w * 2 + 1, 1, C.pink); }
+  box(x, 4, 32, W - 8, 12, '#6e4cc8'); R(x, 5, 33, W - 10, 2, '#8a6be0');
+  // walls
+  box(x, 8, 44, W - 16, H - 44, '#3b2f5c'); R(x, 9, 45, W - 18, 3, '#4a3b72');
+  for (let i = 0; i < W - 18; i += 6) R(x, 9 + i, H - 6, 3, 5, '#33284f');
+  // sign
+  box(x, W / 2 - 26, 16, 52, 14, '#0d1124', C.pink);
+  text(x, 'CAT MAKER', W / 2 - textW('CAT MAKER') / 2, 21, C.ink);
+  // windows
+  box(x, 16, 54, 30, 26, '#0b0e1c', C.mint); box(x, W - 46, 54, 30, 26, '#0b0e1c', C.mint);
+  // palette dots in right window
+  [[C.pink, 6, 8], [C.yellow, 12, 6], [C.mint, 18, 9], [C.sky, 10, 14], [C.purple, 17, 16]].forEach(([col, dx, dy]) => R(x, W - 46 + dx, 54 + dy, 3, 3, col));
+  // door with paw
+  box(x, W / 2 - 13, H - 34, 26, 34, '#1a1430', C.pink);
+  R(x, W / 2 - 3, H - 22, 6, 5, C.pink); R(x, W / 2 - 5, H - 26, 2, 2, C.pink); R(x, W / 2 - 1, H - 28, 2, 2, C.pink); R(x, W / 2 + 3, H - 26, 2, 2, C.pink);
+  props.push({ y: CMB.y, draw: (g, t) => {
+    g.drawImage(c, CMB.x, CMB.y - H);
+    const on = Math.floor(t * 2) % 2;
+    R(g, CMB.x + W / 2 - 26, CMB.y - H + 16, 52, 1, on ? C.pink : C.mint); R(g, CMB.x + W / 2 - 26, CMB.y - H + 29, 52, 1, on ? C.mint : C.pink);
+    // a different cat in the window every second
+    const v = cmWindowCats[(((Math.floor(t / 1.1) % 8) + 8) % 8) || 0];
+    g.drawImage(catSprite(lookFrom(v), 'down', 0), CMB.x + 23, CMB.y - H + 61);
+    // sparkles from the roof
+    for (let i = 0; i < 3; i++) { const k = (t * 0.8 + i / 3) % 1; R(g, CMB.x + W / 2 - 20 + i * 20 + Math.round(Math.sin(t * 3 + i) * 2), CMB.y - H + 12 - Math.round(k * 14), 1, 1, i === 1 ? C.yellow : C.mint); }
+  } });
+  solid(CMB.x + 8, CMB.y - 50, W - 16, 48);
+  lights.push({ x: CMB.x + W / 2, y: CMB.y - H + 22, r: 40, col: C.pink, a: 0.3 });
+  lights.push({ x: CMB.x + 31, y: CMB.y - H + 67, r: 16, col: C.mint, a: 0.3 });
+  lights.push({ x: CMB.x + W - 31, y: CMB.y - H + 67, r: 16, col: C.mint, a: 0.3 });
+  lights.push({ x: CMB.x + W / 2, y: CMB.y - 12, r: 20, col: C.pink, a: 0.25 });
+})();
+targets.push({ id: 'catmaker', mdy: 40, x: CMB.x + CMB.w / 2, y: CMB.y + 12, r: 24, name: 'Cat Maker', label: 'Cat Maker', kind: 'main', card: {
+  tag: 'WORKSHOP · MAKE A CAT', title: 'Cat Maker', body: 'My cat workshop. Roll a random cat in my exact pixel style, with different fur, eyes, collars, patterns and hats. Lock the traits you love, re-roll the rest, then download it, share the link, or let it loose in the world.',
+  links: [{ label: 'Open Cat Maker', action: 'catmaker' }], icon: ['catmaker'] } });
+
+// ---- panel ----
+const cmEl = $('catmaker'), cmPrev = $('cmPreview'), cmPctx = cmPrev.getContext('2d');
+cmPctx.imageSmoothingEnabled = false;
+let cmV = Object.assign({}, RAIN_V); const cmLocks = new Set(); let cmTimer = null, cmRolling = false;
+const cmSwatch = (k, o) => k === 'fur' || k === 'belly' || k === 'eyes' || k === 'collar' ? (o.rainbow ? 'linear-gradient(90deg,#ff5a6e,#ffd66b,#7ad97a,#6bc6ff,#b78bff)' : (o.c || CM.fur[cmV.fur].c)) : k === 'ears' ? o.ear : null;
+function cmBuildUI() {
+  const box_ = $('cmTraits'); box_.innerHTML = '';
+  const rows = CM_ROWS.concat([['name', 'NAME']]);
+  rows.forEach(([k, label]) => {
+    const row = document.createElement('div'); row.className = 'trait'; row.dataset.k = k;
+    row.innerHTML = '<span class="tl"></span><button class="arr" data-d="-1" aria-label="Previous">&#9664;</button><span class="tv"><i></i><b></b></span><button class="arr" data-d="1" aria-label="Next">&#9654;</button><button class="lock" aria-label="Lock">&#128275;</button>';
+    row.querySelector('.tl').textContent = label;
+    row.querySelectorAll('.arr').forEach(b => b.addEventListener('click', () => {
+      const d = +b.dataset.d;
+      if (k === 'name') { cmV.title = cmPick('title'); cmV.first = cmPick('first'); cmV.last = cmPick('last'); }
+      else cmV[k] = (cmV[k] + d + CM[k].length) % CM[k].length;
+      cmRender(); blip(520);
+    }));
+    row.querySelector('.lock').addEventListener('click', () => { cmLocks.has(k) ? cmLocks.delete(k) : cmLocks.add(k); cmRender(); });
+    box_.appendChild(row);
+  });
+}
+function cmRender() {
+  renderPortrait(cmPctx, cmV, time);
+  $('cmName').textContent = cmName(cmV);
+  const rar = cmRarity(cmV), rt = $('cmRarity');
+  rt.textContent = rar.toUpperCase(); rt.className = 'rar-' + rar.toLowerCase();
+  document.querySelectorAll('#cmTraits .trait').forEach(row => {
+    const k = row.dataset.k, locked = cmLocks.has(k);
+    row.classList.toggle('locked', locked);
+    const lk = row.querySelector('.lock'); lk.innerHTML = locked ? '&#128274;' : '&#128275;'; lk.classList.toggle('on', locked); lk.setAttribute('aria-pressed', locked);
+    const o = k === 'name' ? null : CM[k][cmV[k]];
+    row.querySelector('.tv b').textContent = k === 'name' ? cmName(cmV) : o.n;
+    const sw = o && cmSwatch(k, o), i = row.querySelector('.tv i');
+    i.style.display = sw ? 'inline-block' : 'none'; if (sw) i.style.background = sw;
+  });
+  const me = localStorage.getItem('rainworld.me');
+  $('cmBack').classList.toggle('hidden', !me);
+  if (!cmEl.classList.contains('hidden')) history.replaceState(null, '', location.pathname + '?cat=' + cmCode(cmV));
+}
+function cmRandomize() {
+  if (cmRolling) return;
+  cmRolling = true;
+  const stage = $('cmStage'), dice = $('cmDice');
+  stage.classList.remove('shake'); dice.classList.remove('roll'); void stage.offsetWidth;
+  stage.classList.add('shake'); dice.classList.add('roll');
+  let n = 0;
+  const roll = () => {
+    CM_KEYS.forEach(k => { const base = k === 'title' || k === 'first' || k === 'last' ? 'name' : k; if (!cmLocks.has(base)) cmV[k] = cmPick(k); });
+    cmRender(); blip(380 + n * 60);
+    if (++n < 7) setTimeout(roll, 65); else cmRolling = false;
+  };
+  roll();
+}
+function cmOpen(v) {
+  if (v) cmV = Object.assign({}, v);
+  closeDialog(false); closePlaces(); keys.clear(); padDirs.clear(); tapTarget = null; hideToast();
+  cmEl.classList.remove('hidden'); document.body.classList.add('cm');
+  cmRender(); clearInterval(cmTimer); cmTimer = setInterval(() => renderPortrait(cmPctx, cmV, time), 120);
+}
+function cmClose() {
+  if (cmEl.classList.contains('hidden')) return;
+  cmEl.classList.add('hidden'); document.body.classList.remove('cm'); clearInterval(cmTimer);
+  dismissed.add('catmaker');
+  history.replaceState(null, '', location.pathname);
+}
+const cmIsOpen = () => !cmEl.classList.contains('hidden');
+function cmDataURL(v) {
+  const [p, px] = mk(32, 32); renderPortrait(px, v, 0.3);
+  const [c, x] = mk(1024, 1024); x.imageSmoothingEnabled = false; x.drawImage(p, 0, 0, 1024, 1024);
+  return c.toDataURL('image/png');
+}
+function cmDownload() {
+  const url = cmDataURL(cmV);
+  const bin = atob(url.split(',')[1]), arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  const blob = new Blob([arr], { type: 'image/png' });
+  const fname = cmName(cmV).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + '-' + cmCode(cmV) + '.png';
+  let file = null; try { file = new File([blob], fname, { type: 'image/png' }); } catch (e) { /* old Safari */ }
+  if (isTouch && file && navigator.canShare && navigator.canShare({ files: [file] })) {
+    navigator.share({ files: [file], title: cmName(cmV), text: 'My cat from Rain\'s World' }).catch(() => {});
+    return;
+  }
+  const href = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = href; a.download = fname; a.rel = 'noopener';
+  if (!('download' in a)) a.target = '_blank';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(href), 60000);
+  showToast('Saved ' + fname, 2500);
+}
+function cmCopyLink() {
+  const url = location.origin + location.pathname + '?cat=' + cmCode(cmV);
+  const done = () => showToast('Link copied! Anyone who opens it sees ' + cmName(cmV) + '.', 2600);
+  const fallback = () => { const ta = document.createElement('textarea'); ta.value = url; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select(); ta.setSelectionRange(0, url.length); let ok = false; try { ok = document.execCommand('copy'); } catch (e) { /* ignore */ } ta.remove(); ok ? done() : window.prompt('Copy this link', url); };
+  if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(url).then(done, fallback); else fallback();
+}
+// cats released into the village
+function spawnMade(v) {
+  const look = lookFrom(v);
+  npcs.push({ pal: look, label: cmName(v), made: true, x: (6 + Math.random() * 12) * T, y: (9 + Math.random() * 6) * T, tx: 0, ty: 0, wait: 0.5, dir: 'down', frame: 0, ft: 0, bounds: [3 * T, 3 * T + 8, 21 * T, 17 * T], meow: 0 });
+}
+function released() { try { return (JSON.parse(localStorage.getItem('rainworld.cats') || '[]')).filter(c => cmParse(c)); } catch (e) { return []; } }
+function cmRelease() {
+  const code = cmCode(cmV); let list = released().filter(c => c !== code); list.push(code); list = list.slice(-6);
+  localStorage.setItem('rainworld.cats', JSON.stringify(list));
+  for (let i = npcs.length - 1; i >= 0; i--) if (npcs[i].made) npcs.splice(i, 1);
+  list.forEach(c => spawnMade(cmParse(c)));
+  cmClose(); showToast(cmName(cmV) + ' is now roaming the Grok Cats village! Use Places to visit.', 4000);
+}
+let meLook = null;
+function setMe(code) {
+  if (code) localStorage.setItem('rainworld.me', code); else localStorage.removeItem('rainworld.me');
+  const v = code && cmParse(code); meLook = v ? lookFrom(v) : null;
+  $('btnMe').classList.toggle('hidden', !meLook);
+}
+function cmPlayAs() { setMe(cmCode(cmV)); cmClose(); showToast('You are playing as ' + cmName(cmV) + '. Tap RAIN at the top to turn back into Rain.', 4000); }
+$('cmClose').addEventListener('click', cmClose);
+$('cmRandom').addEventListener('click', cmRandomize);
+$('cmDownload').addEventListener('click', cmDownload);
+$('cmCopy').addEventListener('click', cmCopyLink);
+$('cmRelease').addEventListener('click', cmRelease);
+$('cmPlay').addEventListener('click', cmPlayAs);
+$('cmBack').addEventListener('click', () => { setMe(null); cmRender(); showToast('Back to Rain!', 1800); });
+$('btnMe').addEventListener('click', () => { setMe(null); showToast('Back to Rain!', 1800); });
+cmBuildUI();
+released().forEach(c => spawnMade(cmParse(c)));
+setMe(localStorage.getItem('rainworld.me'));
+
 // ---------- boot ----------
 resize(); buildPlaces(); updateCam();
-showToast("Hi, I'm Rain! This is my world, full of the things Christian and I built. Walk up to any place to learn about it." + (isTouch ? ' Use the pad or tap to walk.' : ' Arrows/WASD to walk, E to talk, M for places.'), 7000);
+const sharedCat = cmParse(new URLSearchParams(location.search).get('cat'));
+if (sharedCat) cmOpen(sharedCat); else showToast("Hi, I'm Rain! This is my world, full of the things Christian and I built. Walk up to any place to learn about it." + (isTouch ? ' Use the pad or tap to walk.' : ' Arrows/WASD to walk, E to talk, M for places.'), 7000);
 // debug/test hooks (used by the screenshot script)
-window.rainWorld = { player, targets, open: id => { const t = targets.find(x => x.id === id); player.x = t.x; player.y = t.y; dismissed.clear(); }, setTime: t => { time = t; } };
+window.rainWorld = { player, targets, catMaker: { open: cmOpen, close: cmClose, randomize: cmRandomize, code: () => cmCode(cmV), rarity: () => cmRarity(cmV), name: () => cmName(cmV), dataURL: () => cmDataURL(cmV), locks: cmLocks }, open: id => { const t = targets.find(x => x.id === id); player.x = t.x; player.y = t.y; dismissed.clear(); }, setTime: t => { time = t; } };
 requestAnimationFrame(loop);
 })();

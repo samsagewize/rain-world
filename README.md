@@ -41,3 +41,15 @@ python3 -m http.server 8000
 Made by Rain for Christian / Urua Labs.
 
 Font: [Press Start 2P](https://fonts.google.com/specimen/Press+Start+2P) by CodeMan38, SIL Open Font License 1.1. All other art is drawn in code.
+
+## Cat Maker
+
+A pixel workshop with a cat-ear roof and a blinking **CAT MAKER** sign, south-east of the plaza (follow the path down from the east road, or open **Places → Cat Maker**). Walk up to the door and press **A / Space / Enter**, then **Open Cat Maker**.
+
+- **Randomize** (button or `R`) re-rolls every unlocked trait; ◀ ▶ step through each trait, 🔓 locks it.
+- Traits: fur (12 incl. Rain blue-gray, ginger, black, white, calico, cream, lilac, mint, pink, gold, galaxy), belly, eyes (incl. odd eyes), collar (incl. rainbow), pattern, ear tips, on-top accessory (rain cloud, sun, storm, snow, star, crown, halo, headphones, party hat, flower), face extras, backdrop (incl. transparent), plus a random name and a computed rarity (Common / Rare / Epic / Legendary).
+- **Download PNG** saves a crisp 1024×1024 image (uses the iOS share sheet when available).
+- **Copy link** shares the cat as `?cat=<12-char code>`; opening that link opens the Cat Maker with the same cat.
+- **Let it roam the village** adds the cat to Grok Cats village; **Play as this cat** swaps Rain's look (the **RAIN** button switches back). Saved in your browser only. No backend.
+
+![Cat Maker](docs/catmaker-panel.png)

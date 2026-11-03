@@ -16,6 +16,7 @@
 <div id="hud">
   <div id="title">RAIN'S WORLD</div>
   <div id="buttons">
+    <button id="btnMe" class="hidden" title="Turn back into Rain" aria-label="Back to Rain">RAIN</button>
     <button id="btnPlaces" title="Places (M)" aria-label="Places">&#9776;</button>
     <button id="btnRain" title="Rain on/off (R)" aria-label="Toggle rain">&#9730;</button>
     <button id="btnSound" title="Music on/off (N)" aria-label="Toggle music">&#9835;<s></s></button>
@@ -44,6 +45,30 @@
   <button id="placesClose" aria-label="Close">&times;</button>
   <h2>PLACES</h2>
   <div id="placesList"></div>
+</div>
+
+<div id="catmaker" class="pixel-box hidden" role="dialog" aria-label="Cat Maker">
+  <button id="cmClose" aria-label="Close">&times;</button>
+  <h2>CAT MAKER</h2>
+  <div id="cmGrid">
+    <div id="cmLeft">
+      <div id="cmStage"><canvas id="cmPreview" width="32" height="32" aria-label="Your cat"></canvas><div id="cmDice" aria-hidden="true">&#127922;</div></div>
+      <div id="cmName"></div>
+      <div id="cmRarityWrap"><span id="cmRarity"></span></div>
+      <button id="cmRandom">&#127922; RANDOMIZE</button>
+      <div id="cmActions">
+        <button id="cmDownload">Download PNG</button>
+        <button id="cmCopy" class="alt">Copy link</button>
+        <button id="cmRelease" class="alt">Let it roam the village</button>
+        <button id="cmPlay" class="alt">Play as this cat</button>
+        <button id="cmBack" class="alt hidden">Back to Rain</button>
+      </div>
+    </div>
+    <div id="cmRight">
+      <div id="cmTraits"></div>
+      <div id="cmNote">&#128275; Lock the traits you like, then Randomize re-rolls the rest. Arrows step through each trait.</div>
+    </div>
+  </div>
 </div>
 
 <div id="pad" aria-hidden="true">
