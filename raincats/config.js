@@ -1,6 +1,6 @@
 // Rain Cats mint config. Switch cluster/rpc/addresses here for mainnet (see README).
 window.RAINCATS_CONFIG = {
-  version: 1,
+  version: 2,
   cluster: 'devnet',
   explorerCluster: 'devnet',
   rpc: 'https://api.devnet.solana.com',
@@ -10,6 +10,6 @@ window.RAINCATS_CONFIG = {
   collection: null,
   treasury: '4GaueHtYpPLbPKdgPR5JMpkxtoFNmwXceAojdo3ce5aC',
   freeWallets: ['4GaueHtYpPLbPKdgPR5JMpkxtoFNmwXceAojdo3ce5aC'],
-  price: 0.03,
-  supply: 3699
+  price: 0.04,
+  supply: 1000
 };

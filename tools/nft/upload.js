@@ -21,7 +21,7 @@ function writeMeta(imgBase) {
     if (c.title) attributes.push({ trait_type: 'One of One', value: c.title });
     attributes.push({ trait_type: 'DNA', value: c.dna });
     fs.writeFileSync(`${dir}/${c.index}.json`, JSON.stringify({ name: `Rain Cat #${num}`, symbol: 'RCAT',
-      description: `${c.name}, ${/^[AEIOU]/.test(c.rarity) ? 'an' : 'a'} ${c.rarity} Rain Cat. One of 3,699 pixel cats from Rain's World. Holders can play as their cat or let it roam the village at ${SITE}`,
+      description: `${c.name}, ${/^[AEIOU]/.test(c.rarity) ? 'an' : 'a'} ${c.rarity} Rain Cat. One of 1,000 pixel cats from Rain's World. Holders can play as their cat or let it roam the village at ${SITE}`,
       image, external_url: SITE, attributes, properties: { files: [{ uri: image, type: 'image/png' }], category: 'image' } }));
   }
   return dir;
@@ -33,8 +33,8 @@ function writeMeta(imgBase) {
   }
   const key = loadOrCreate('authority');
   const irys = await (NET === 'mainnet' ? Uploader(Solana).withWallet(key.secretKey).withRpc(RPC) : Uploader(Solana).withWallet(key.secretKey).withRpc(RPC).devnet());
-  const imgBytes = dirSize(`${RC}/images`), metaBytes = 3699 * 1100, colBytes = fs.statSync(`${RC}/collection.png`).size + 1500;
-  const total = imgBytes + metaBytes + colBytes + 3699 * 2 * 1200; // + per-item header/manifest overhead
+  const imgBytes = dirSize(`${RC}/images`), metaBytes = 1000 * 1100, colBytes = fs.statSync(`${RC}/collection.png`).size + 1500;
+  const total = imgBytes + metaBytes + colBytes + 1000 * 2 * 1200; // + per-item header/manifest overhead
   const price = await irys.getPrice(total);
   console.log(JSON.stringify({ net: NET, bytes: total, priceSOL: Number(price) / 1e9 }));
   if (PRICE_ONLY) return;
@@ -42,7 +42,7 @@ function writeMeta(imgBase) {
   if (BigInt(bal.toString()) < need) { const r = await irys.fund((need - BigInt(bal.toString())).toString()); console.log('funded irys', Number(r.quantity) / 1e9, 'SOL'); }
   if (!st.collectionImage) { const r = await irys.uploadFile(`${RC}/collection.png`, { tags: [{ name: 'Content-Type', value: 'image/png' }] }); st.collectionImage = `${GW}/${r.id}`; save(); }
   if (!st.collectionJson) {
-    const j = { name: 'Rain Cats', symbol: 'RCAT', description: "3,699 pixel cats from Rain's World, Rain's home on the web. Mint a mystery cat, then play as it or let it roam the village.", image: st.collectionImage, external_url: SITE, properties: { files: [{ uri: st.collectionImage, type: 'image/png' }], category: 'image' } };
+    const j = { name: 'Rain Cats', symbol: 'RCAT', description: "1,000 pixel cats from Rain's World, Rain's home on the web. Mint a mystery cat, then play as it or let it roam the village.", image: st.collectionImage, external_url: SITE, properties: { files: [{ uri: st.collectionImage, type: 'image/png' }], category: 'image' } };
     const r = await irys.upload(JSON.stringify(j), { tags: [{ name: 'Content-Type', value: 'application/json' }] }); st.collectionJson = `${GW}/${r.id}`; save();
   }
   const log = m => { if (!/^Checking|^Uploading|^Finished/.test(m)) return; process.stdout.write(m + '\n'); };

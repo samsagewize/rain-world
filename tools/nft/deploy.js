@@ -1,5 +1,5 @@
 // Create the Rain Cats Core collection + Core Candy Machine with guard groups.
-// Usage: node deploy.js main      -> 3,699-item CM from upload-<net>.json   (NET env: devnet|mainnet)
+// Usage: node deploy.js main      -> 1,000-item CM from upload-<net>.json   (NET env: devnet|mainnet)
 //        node deploy.js test      -> 5-item allowlist test CM whose allowList contains the throwaway "buyer2" key
 const fs = require('fs');
 const { generateSigner, publicKey, some, none, sol, transactionBuilder } = require('@metaplex-foundation/umi');
@@ -16,7 +16,7 @@ const st = fs.existsSync(OUT) ? JSON.parse(fs.readFileSync(OUT)) : {};
 const save = () => fs.writeFileSync(OUT, JSON.stringify(st, null, 2));
 (async () => {
   const umi = umiFor('authority', NET === 'mainnet' ? process.env.RPC : undefined);
-  const items = MODE === 'test' ? 5 : 3699;
+  const items = MODE === 'test' ? 5 : 1000;
   const allow = MODE === 'test' ? [loadOrCreate('buyer2').publicKey.toBase58()] : [CREATOR];
   if (!st.collection) {
     const col = generateSigner(umi);
@@ -32,7 +32,7 @@ const save = () => fs.writeFileSync(OUT, JSON.stringify(st, null, 2));
       hiddenSettings: none(),
       guards: {},
       groups: [
-        { label: 'public', guards: { solPayment: some({ lamports: sol(0.03), destination: publicKey(CREATOR) }) } },
+        { label: 'public', guards: { solPayment: some({ lamports: sol(0.04), destination: publicKey(CREATOR) }) } },
         { label: 'free', guards: { allowList: some({ merkleRoot: getMerkleRoot(allow) }) } },
       ] });
     await tx.sendAndConfirm(umi);
@@ -40,7 +40,7 @@ const save = () => fs.writeFileSync(OUT, JSON.stringify(st, null, 2));
   }
   const cmAcc = await fetchCandyMachine(umi, publicKey(st.candyMachine));
   st.candyGuard = cmAcc.mintAuthority.toString(); save();
-  // config lines: name suffix = 4-digit number, uri suffix = <index>.json (index 0..3698 = Rain Cat #0001..#3699)
+  // config lines: name suffix = 4-digit number, uri suffix = <index>.json (index 0..999 = Rain Cat #0001..#1000)
   const all = Array.from({ length: items }, (_, i) => ({ name: String(i + 1).padStart(4, '0'), uri: `${i}.json` }));
   const CH = 40; let done = cmAcc.itemsLoaded;
   for (let i = done; i < items; i += CH) {

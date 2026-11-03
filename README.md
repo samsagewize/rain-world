@@ -56,7 +56,7 @@ A pixel workshop with a cat-ear roof and a blinking **CAT MAKER** sign, south-ea
 
 ## Rain Cats (Solana NFT mint)
 
-The Cat Maker building now sells **Rain Cats**, a 3,699-cat Metaplex Core collection (symbol RCAT, 5% royalties). It is a blind mint for 0.03 SOL; the cat is revealed after you pay. Holders can play as their cats or let them roam the village.
+The Cat Maker building now sells **Rain Cats**, a 1,000-cat Metaplex Core collection (symbol RCAT, 5% royalties). It is a blind mint for 0.04 SOL; the cat is revealed after you pay. Holders can play as their cats or let them roam the village.
 
 - `raincats/config.js`: the cluster, RPC, Candy Machine, guard, collection, treasury and free-mint wallets. While the addresses are `null` the panel shows "Mint opens soon".
 - `raincats/mint.js`: the bundled mint and "My Rain Cats" UI. It is loaded only when the panel is opened. Source: `tools/nft/web/mint-src.js`. Build: `npx esbuild web/mint-src.js --bundle --minify --format=iife --define:global=globalThis --outfile=../../raincats/mint.js`.

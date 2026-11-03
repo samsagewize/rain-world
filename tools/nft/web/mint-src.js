@@ -178,7 +178,7 @@ function render() {
   $('rcConnect').textContent = wallet ? 'Disconnect' : (provider() || !isMobile ? 'Connect Phantom' : 'Open in Phantom');
   const m = $('rcMint');
   if (mode !== 'reveal') { m.classList.remove('hidden'); m.classList.toggle('free', !!isFree());
-    m.innerHTML = !wallet ? '&#127873; CONNECT TO MINT &middot; 0.03 SOL' : isFree() ? '&#127873; FREE TEST MINT' : '&#127873; MINT A MYSTERY CAT &middot; 0.03 SOL'; }
+    m.innerHTML = !wallet ? `&#127873; CONNECT TO MINT &middot; ${CFG.price} SOL` : isFree() ? '&#127873; FREE TEST MINT' : `&#127873; MINT A MYSTERY CAT &middot; ${CFG.price} SOL`; }
   $('rcTabMint').classList.toggle('on', tab === 'mint'); $('rcTabMine').classList.toggle('on', tab === 'mine');
   $('rcMintView').classList.toggle('hidden', tab !== 'mint'); $('rcMineView').classList.toggle('hidden', tab !== 'mine');
 }

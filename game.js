@@ -1064,7 +1064,7 @@ const cmWindowCats = Array.from({ length: 8 }, () => { const v = {}; CM_KEYS.for
 })();
 targets.push({ id: 'catmaker', mdy: 40, x: CMB.x + CMB.w / 2, y: CMB.y + 12, r: 24, name: 'Cat Maker', label: 'Cat Maker', kind: 'main', card: {
   tag: 'WORKSHOP · MAKE A CAT', title: 'Cat Maker', body: 'My cat workshop. Roll a random cat in my exact pixel style, with different fur, eyes, collars, patterns and hats. Lock the traits you love, re-roll the rest, then download it, share the link, or let it loose in the world. New: mint a mystery Rain Cat NFT on Solana, then walk around as it.',
-  links: [{ label: 'Open Cat Maker', action: 'catmaker' }, { label: 'Mint a mystery cat \u00b7 0.03 SOL', action: 'mint' }, { label: 'My Rain Cats', action: 'mine' }], icon: ['catmaker'] } });
+  links: [{ label: 'Open Cat Maker', action: 'catmaker' }, { label: 'Mint a mystery cat \u00b7 0.04 SOL', action: 'mint' }, { label: 'My Rain Cats', action: 'mine' }], icon: ['catmaker'] } });
 
 // ---- panel ----
 const cmEl = $('catmaker'), cmPrev = $('cmPreview'), cmPctx = cmPrev.getContext('2d');

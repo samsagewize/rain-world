@@ -1,14 +1,16 @@
-// Deterministic Rain Cats generator: 3,690 unique regular cats + 9 hand-designed Super Rares = 3,699.
+// Deterministic Rain Cats generator: 991 unique regular cats + 9 hand-designed Super Rares = 1,000.
 // Renders with the game's own sprite code (headless Chromium), writes 32x32 PNGs + Metaplex JSON.
 const { chromium } = require('/workspace/rainworld/tools/node_modules/playwright');
 const fs = require('fs');
 const OUT = '/workspace/rainworld/raincats';
 const SITE = process.env.SITE || 'http://localhost:8765/';
-const TOTAL = 3699, SEED = 3699;
+const TOTAL = 1000, SEED = 1000;
+// rarity quotas for the 991 regular cats (Super Rares are the 9 hand-made 1/1s)
+const QUOTA = { Common: 450, Rare: 320, Epic: 160, Legendary: 61 };
 const CREATOR = '4GaueHtYpPLbPKdgPR5JMpkxtoFNmwXceAojdo3ce5aC';
 function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 (async () => {
-  fs.mkdirSync(OUT + '/png32', { recursive: true }); fs.mkdirSync(OUT + '/json', { recursive: true });
+  fs.rmSync(OUT + '/png32', { recursive: true, force: true }); fs.rmSync(OUT + '/images', { recursive: true, force: true }); fs.mkdirSync(OUT + '/png32', { recursive: true }); fs.mkdirSync(OUT + '/json', { recursive: true });
   const browser = await chromium.launch(); const page = await browser.newPage();
   await page.goto(SITE, { waitUntil: 'networkidle' });
   const { CM, KEYS, SR } = await page.evaluate(() => ({ CM: rainWorld.nft.CM, KEYS: rainWorld.nft.CM_KEYS, SR: rainWorld.nft.SR.map(r => ({ id: r.id, n: r.n, name: r.name, t: r.t })) }));
@@ -18,7 +20,9 @@ function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let
     if (k === 'bg') return Math.floor(R() * 4); // no transparent backdrop in the collection
     let sum = l.reduce((a, o) => a + W[o.t], 0), r = R() * sum; for (let i = 0; i < l.length; i++) { r -= W[l[i].t]; if (r <= 0) return i; } return 0; };
   const VIS = ['fur', 'belly', 'eyes', 'collar', 'pattern', 'ears', 'acc', 'face', 'bg'];
-  const seen = new Set(), names = new Set(), cats = [];
+  const seen = new Set(), names = new Set(), cats = [], have = {};
+  SR.forEach(r => names.add(r.name)); // regular cats never reuse a 1/1 name
+  if (Object.values(QUOTA).reduce((a, b) => a + b, 0) !== TOTAL - SR.length) throw new Error('quota mismatch');
   const tierSum = v => ['fur', 'belly', 'eyes', 'collar', 'pattern', 'ears', 'acc', 'face'].reduce((a, k) => a + CM[k][v[k]].t, 0);
   const rarity = s => s >= 8 ? 'Legendary' : s >= 6 ? 'Epic' : s >= 4 ? 'Rare' : 'Common';
   const nameOf = v => [CM.title[v.title], CM.first[v.first], CM.last[v.last]].filter(Boolean).join(' ');
@@ -27,9 +31,10 @@ function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let
     const vis = VIS.map(k => v[k]).join(',');
     // keep Rain's own look (and anything visually identical to the OG 1/1) out of the regular set
     if (seen.has(vis) || VIS.slice(0, 8).every(k => v[k] === 0)) continue;
+    const rr = rarity(tierSum(v)); if ((have[rr] || 0) >= QUOTA[rr]) continue;
     let tries = 0; while (names.has(nameOf(v)) && tries++ < 50) { v.title = pick('title'); v.first = pick('first'); v.last = pick('last'); }
     if (names.has(nameOf(v))) continue;
-    seen.add(vis); names.add(nameOf(v));
+    seen.add(vis); names.add(nameOf(v)); have[rr] = (have[rr] || 0) + 1;
     const dna = KEYS.map(k => v[k].toString(36)).join('');
     cats.push({ dna, name: nameOf(v), rarity: rarity(tierSum(v)), attrs: { Fur: CM.fur[v.fur].n, Belly: CM.belly[v.belly].n, Eyes: CM.eyes[v.eyes].n, Collar: CM.collar[v.collar].n, Pattern: CM.pattern[v.pattern].n, 'Ear Tips': CM.ears[v.ears].n, 'On Top': CM.acc[v.acc].n, Face: CM.face[v.face].n, Backdrop: CM.bg[v.bg].n } });
   }
