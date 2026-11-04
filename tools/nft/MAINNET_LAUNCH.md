@@ -8,7 +8,8 @@ Launched 2026-11-04 (America/Chicago). Metaplex Core collection + Core Candy Mac
 | Collection (Core) | [NoKDyLnGYSHjfSSAwQkfxsBLzk94NXgNqEXoSg84Bvi](https://solscan.io/account/NoKDyLnGYSHjfSSAwQkfxsBLzk94NXgNqEXoSg84Bvi) |
 | Candy Machine (Core) | [DM8HhCKYCXESv1UHB5W31mSr9MF9WncL3gd6DMbAgwtJ](https://solscan.io/account/DM8HhCKYCXESv1UHB5W31mSr9MF9WncL3gd6DMbAgwtJ) |
 | Candy Guard (mint authority) | [9oZ6UaRjaVmi75wQQVsVFmG1xkcR2nEN7v8iCsh8LH7x](https://solscan.io/account/9oZ6UaRjaVmi75wQQVsVFmG1xkcR2nEN7v8iCsh8LH7x) |
-| Authority / update authority | [Ejy3n9xw9U6R1kZCV8GAkgV3A9W6R8v5j9eZ57HdjFxA](https://solscan.io/account/Ejy3n9xw9U6R1kZCV8GAkgV3A9W6R8v5j9eZ57HdjFxA) |
+| Collection update authority (since 2026-11-04 12:25 CST) | [4GaueHtYpPLbPKdgPR5JMpkxtoFNmwXceAojdo3ce5aC](https://solscan.io/account/4GaueHtYpPLbPKdgPR5JMpkxtoFNmwXceAojdo3ce5aC) |
+| Candy Machine + Candy Guard authority (was also collection UA until the transfer) | [Ejy3n9xw9U6R1kZCV8GAkgV3A9W6R8v5j9eZ57HdjFxA](https://solscan.io/account/Ejy3n9xw9U6R1kZCV8GAkgV3A9W6R8v5j9eZ57HdjFxA) |
 | Creator, treasury, royalties (5%) | [4GaueHtYpPLbPKdgPR5JMpkxtoFNmwXceAojdo3ce5aC](https://solscan.io/account/4GaueHtYpPLbPKdgPR5JMpkxtoFNmwXceAojdo3ce5aC) |
 
 ## Config (verified on-chain after deploy, `node verify.js`)
@@ -56,3 +57,14 @@ Every Rooms check-mark wallet (active Rooms Premium: founder or unexpired; 21 wa
 - Mainnet simulations (never sent): 4Gaue verify = success (sigVerify off), public = success, free = AllowedMintLimitReached (Christian already used it); fresh unverified wallet without the co-signature = SignatureFailure, live route = 403.
 - The Rain's World in-game panel mints `free`/`public` only; verified free mints happen on intherooms.xyz/mint.
 - Rotate the co-signer: new key -> updateCandyGuard with the new signerKey (edit verified-guard.js) -> RAINCATS.verifiedSigner in Rooms -> replace the Vercel Secret.
+
+## Collection update authority -> 4Gaue (2026-11-04)
+Moved so Christian can sign Tensor's collection-ownership verification with Phantom.
+- updateCollectionV1 (newUpdateAuthority = 4GaueHtYpPLbPKdgPR5JMpkxtoFNmwXceAojdo3ce5aC, name/uri unchanged), signed by Ejy3n... only (new UA is a plain account, no co-sign).
+- Tx: [5bMxFJjdu4G3A35GYUmnpVbGCYGUAcQypEHnVyfVrUAZd5Qvw4wMPbQm7xqvBeVa2CiKsPwJXufnPLgJpPgTg3fF](https://solscan.io/tx/5bMxFJjdu4G3A35GYUmnpVbGCYGUAcQypEHnVyfVrUAZd5Qvw4wMPbQm7xqvBeVa2CiKsPwJXufnPLgJpPgTg3fF), finalized slot 465401668, 12:25:37 CST. Fee 0.000005 SOL; authority 0.023627414 -> 0.023622414 SOL.
+- Preflight (mainnet simulations): updateCollection + a public mint in the same tx = success (mint works with the new UA); updateCollection alone with the real signer = success.
+- After (on-chain): updateAuthority = 4Gaue...; UpdateDelegate plugin unchanged (authority UpdateAuthority, additionalDelegates = [CM authority PDA FnqZ1FwKAZgESEzT9h9UVW9ogfpQwrnMWJYHwovnq45R]); Royalties unchanged (500 bps, 4Gaue 100%, ruleSet None); numMinted 1. Simulated public mint after = success (never sent).
+- Script: `node transfer-ua.js` (preflight) / `--send` (refuses if UA is no longer Ejy3n...) / `--verify`.
+- Still Ejy3n... alone (no 4Gaue needed): Candy Machine authority (updateCandyMachine, addConfigLines, deleteCandyMachine/withdraw rent), Candy Guard authority (updateCandyGuard, e.g. rotating the `verify` co-signer, deleteCandyGuard), Irys withdrawals.
+- Now needs 4Gaue's signature: anything on the collection itself — name/uri, Royalties changes, adding/removing collection plugins, approving/revoking UpdateDelegate (e.g. removing the CM PDA delegate after sell-out, or re-adding a delegate if a new/replacement Candy Machine is ever pointed at this collection: create/setCollection needs the collection UA to sign), and burning/updating assets via collection authority.
+- Unaffected: Rain's World in-game mint (`public`/`free`) and the Rooms verified route (`verify`, thirdPartySigner co-sign) both mint through the Candy Guard -> CM authority PDA -> UpdateDelegate; none of them reads or signs as the collection UA. Asset lookups match asset.updateAuthority = Collection(NoKDy...), which does not change.
