@@ -60,10 +60,17 @@ async function connect() {
     if (isMobile) { location.href = `https://phantom.app/ul/browse/${encodeURIComponent(location.href.split('#')[0])}?ref=${encodeURIComponent(location.origin)}`; return; }
     window.open('https://phantom.com/download', '_blank', 'noopener'); status('Install the Phantom extension, then reload this page.'); return;
   }
-  try { const r = await p.connect(); wallet = (r && r.publicKey ? r.publicKey : p.publicKey).toString(); umi = makeUmi(); render(); refresh(); await checkFree(); if (tab === 'mine') loadMine(); }
+  try { const r = await p.connect(); wallet = (r && r.publicKey ? r.publicKey : p.publicKey).toString(); onWallet(); umi = makeUmi(); render(); refresh(); await checkFree(); if (tab === 'mine') loadMine(); }
   catch (e) { status('Wallet connection was cancelled.', true); }
 }
-async function disconnect() { const p = provider(); try { p && await p.disconnect(); } catch (e) { /* ignore */ } wallet = null; freeUsed = null; umi = makeUmi(); render(); }
+// tell the world which wallet is connected, and show the Rooms check-mark claim button when it applies
+function onWallet() {
+  const w = W(); if (!wallet || !w) return;
+  if (w.setWallet) w.setWallet(wallet);
+  const me = wallet; $('rcVerified').classList.add('hidden');
+  if (w.roomsInfo) w.roomsInfo(wallet).then(i => { if (me === wallet) $('rcVerified').classList.toggle('hidden', !i.verified); }, () => {});
+}
+async function disconnect() { const p = provider(); try { p && await p.disconnect(); } catch (e) { /* ignore */ } wallet = null; freeUsed = null; $('rcVerified').classList.add('hidden'); umi = makeUmi(); render(); }
 const onFreeList = () => !!wallet && (CFG.freeWallets || []).includes(wallet);
 const isFree = () => onFreeList() && freeUsed !== null && freeUsed < FREE_LIMIT;
 async function checkFree() { // reads the mintLimit counter PDA for the free group; falls back to paid after the free mint is used
@@ -171,9 +178,16 @@ async function loadMine() {
   if (!ready()) { $('rcMineNote').textContent = 'The collection is not live yet.'; return; }
   $('rcMineNote').textContent = 'Looking for your Rain Cats\u2026';
   try {
+    if (W() && W().roomsInfo) { // Rooms reads the chain server-side (free RPCs block getProgramAccounts in the browser)
+      try {
+        const info = await W().roomsInfo(wallet, true);
+        const cats = info.cats.filter(c => c.dna);
+        if (cats.length || !remembered().length) return showMine(cats);
+      } catch (e) { /* fall back to the on-device path below */ }
+    }
     const cats = await ownedCats();
     if (!cats.length) { $('rcMineNote').textContent = 'No Rain Cats in this wallet yet. Mint a mystery cat first!'; return; }
-    $('rcMineNote').textContent = `You own ${cats.length} Rain Cat${cats.length > 1 ? 's' : ''}. Pick one to play as it or let it roam the village.`;
+    $('rcMineNote').textContent = `You own ${cats.length} Rain Cat${cats.length > 1 ? 's' : ''}. Pick one to walk as it or let it roam the meadows.`;
     for (const c of cats.slice(0, 60)) {
       const card = document.createElement('div'); card.className = 'rcCard';
       const cv = document.createElement('canvas'); cv.width = 32; cv.height = 32; card.appendChild(cv);
@@ -184,14 +198,35 @@ async function loadMine() {
         const g = cv.getContext('2d'); g.imageSmoothingEnabled = false; W().renderPortrait(g, dna, 0.3);
         const nick = (j.attributes || []).find(a => a.trait_type === 'Name'); if (nick) nm.textContent = `${c.name} \u00b7 ${nick.value}`;
         const acts = document.createElement('div'); acts.className = 'rcActs';
-        const b1 = document.createElement('button'); b1.textContent = 'Play as'; b1.addEventListener('click', () => playAs(dna, nick ? nick.value : c.name));
+        const b1 = document.createElement('button'); b1.textContent = 'Walk as'; b1.addEventListener('click', () => playAs(dna, nick ? nick.value : c.name, { asset: c.asset, name: c.name, nickname: nick ? nick.value : '' }));
         const b2 = document.createElement('button'); b2.className = 'alt'; b2.textContent = 'Let it roam'; b2.addEventListener('click', () => roam(dna, nick ? nick.value : c.name));
         acts.appendChild(b1); acts.appendChild(b2); card.appendChild(acts); card.dataset.dna = dna;
       }).catch(() => { nm.textContent += ' (art loading failed)'; });
     }
   } catch (e) { $('rcMineNote').textContent = 'Could not load your cats: ' + String(e.message || e).slice(0, 120); }
 }
-function playAs(dna, label) { close(); W().setMe(dna); W().showToast(`You are playing as ${label}. Tap RAIN at the top to turn back into Rain.`, 4000); }
+function showMine(cats) {
+  const box = $('rcMineList'); box.innerHTML = '';
+  if (!cats.length) { $('rcMineNote').textContent = 'No Rain Cats in this wallet yet. Mint a mystery cat first!'; return; }
+  $('rcMineNote').textContent = `You own ${cats.length} Rain Cat${cats.length > 1 ? 's' : ''}. Pick one to walk as it or let it roam the meadows.`;
+  for (const c of cats.slice(0, 60)) {
+    const card = document.createElement('div'); card.className = 'rcCard'; card.dataset.dna = c.dna;
+    const cv = document.createElement('canvas'); cv.width = 32; cv.height = 32; card.appendChild(cv);
+    const g = cv.getContext('2d'); g.imageSmoothingEnabled = false; W().renderPortrait(g, c.dna, 0.3);
+    const nm = document.createElement('div'); nm.textContent = c.nickname ? `${c.name} \u00b7 ${c.nickname}` : (c.name || 'Rain Cat'); card.appendChild(nm);
+    const acts = document.createElement('div'); acts.className = 'rcActs';
+    const b1 = document.createElement('button'); b1.textContent = 'Walk as'; b1.addEventListener('click', () => playAs(c.dna, c.nickname || c.name, c));
+    const b2 = document.createElement('button'); b2.className = 'alt'; b2.textContent = 'Let it roam'; b2.addEventListener('click', () => roam(c.dna, c.nickname || c.name));
+    acts.appendChild(b1); acts.appendChild(b2); card.appendChild(acts); box.appendChild(card);
+  }
+}
+// Walk as a cat: saved per wallet in the world (ownership is re-checked on the next visit)
+function playAs(dna, label, cat) {
+  close();
+  const w = W();
+  if (w.chooseCat && wallet) w.chooseCat(Object.assign({ dna, nickname: label, name: label }, cat || {}), wallet);
+  else { w.setMe(dna); w.showToast(`You are walking as ${label}.`, 4000); }
+}
 function roam(dna, label) { close(); W().releaseDNA(dna, label); }
 
 // ---------- panel ----------
@@ -206,12 +241,11 @@ function render() {
   $('rcMintView').classList.toggle('hidden', tab !== 'mint'); $('rcMineView').classList.toggle('hidden', tab !== 'mine');
 }
 function open(which) {
-  const w = W(); if (w) { w.closeDialog(false); w.closePlaces(); w.keys.clear(); w.padDirs.clear(); }
-  if (window.rainWorld.catMaker) window.rainWorld.catMaker.close();
+  const w = W(); if (w) { w.closeDialog(false); w.closePlaces(); if (w.closePicker) w.closePicker(); w.keys.clear(); w.padDirs.clear(); }
   tab = which === 'mine' ? 'mine' : 'mint';
   $('rcPanel').classList.remove('hidden'); document.body.classList.add('rc');
   if (!umi) umi = makeUmi();
-  const p = provider(); if (p && !wallet) p.connect({ onlyIfTrusted: true }).then(r => { wallet = (r.publicKey || p.publicKey).toString(); umi = makeUmi(); render(); checkFree(); if (tab === 'mine') loadMine(); }).catch(() => {});
+  const p = provider(); if (p && !wallet) p.connect({ onlyIfTrusted: true }).then(r => { wallet = (r.publicKey || p.publicKey).toString(); onWallet(); umi = makeUmi(); render(); checkFree(); if (tab === 'mine') loadMine(); }).catch(() => {});
   render(); refresh(); if (tab === 'mine') loadMine();
   clearInterval(boxTimer); boxTimer = setInterval(drawBox, 90); drawBox();
 }
@@ -222,7 +256,8 @@ $('rcConnect').addEventListener('click', () => wallet ? disconnect() : connect()
 $('rcMint').addEventListener('click', () => wallet ? mint() : connect());
 $('rcTabMint').addEventListener('click', () => { tab = 'mint'; render(); });
 $('rcTabMine').addEventListener('click', () => { tab = 'mine'; render(); loadMine(); });
-$('rcPlay').addEventListener('click', () => revealed && playAs(revealed.dna, (revealed.meta.attributes.find(a => a.trait_type === 'Name') || {}).value || revealed.name));
+$('rcPlay').addEventListener('click', () => { if (!revealed) return; const at = {}; (revealed.meta.attributes || []).forEach(a => at[a.trait_type] = a.value);
+  playAs(revealed.dna, at.Name || revealed.name, { asset: revealed.asset, name: revealed.name, nickname: at.Name || '', rarity: at.Rarity || '', number: (/#(\d+)/.exec(revealed.name) || [])[1] || '' }); });
 $('rcRoam').addEventListener('click', () => revealed && roam(revealed.dna, (revealed.meta.attributes.find(a => a.trait_type === 'Name') || {}).value || revealed.name));
 $('rcAgain').addEventListener('click', () => { mode = 'idle'; revealed = null; $('rcReveal').classList.add('hidden'); status(''); render(); });
 window.RainCats = { open, close, connect, mint, refresh, loadMine, config: CFG, get wallet() { return wallet; }, get revealed() { return revealed; }, _test: { Keypair, VersionedTransaction, PublicKey } };

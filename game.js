@@ -30,7 +30,7 @@ const FONT = {
   '-':'000000111000000',"'":'010010000000000',' ':'000000000000000','&':'010101010101011',':':'000010000010000'
 };
 function text(ctx, s, x, y, col, sc = 1) {
-  ctx.fillStyle = col;
+  ctx.fillStyle = col; x = Math.round(x); y = Math.round(y);
   s = s.toUpperCase();
   for (let i = 0; i < s.length; i++) {
     const g = FONT[s[i]] || FONT[' '];
@@ -131,21 +131,16 @@ const VILLAGE_PALS = [
 ];
 
 // ---------- the world layout (tiles) ----------
-const isVoid = (tx, ty) => tx < 2 || tx > 61 || ty < 2 || ty > 45;
+// Two buildings only: Rooms HQ (west) and the Rain Cats Mint (east), joined by one front walk.
+const isVoid = (tx, ty) => tx < 15 || tx > 48 || ty < 6 || ty > 42;
 const inR = (tx, ty, x0, y0, x1, y1) => tx >= x0 && tx <= x1 && ty >= y0 && ty <= y1;
-const PLAZA = { x: 32, y: 30, r: 4.6 };
+const PLAZA = { x: 32, y: 30, r: 3.6 };
 function tileKind(tx, ty) {
   if (isVoid(tx, ty)) return 'void';
   if (Math.hypot(tx + 0.5 - PLAZA.x, ty + 0.5 - PLAZA.y) < PLAZA.r) return 'plaza';
-  if (inR(tx, ty, 30, 17, 33, 45)) return 'avenue';
-  if (inR(tx, ty, 4, 29, 60, 31)) return 'road';
-  if (inR(tx, ty, 11, 17, 13, 28)) return 'path';
-  if (inR(tx, ty, 10, 32, 12, 39)) return 'path';
-  if (inR(tx, ty, 51, 24, 53, 28)) return 'path';
-  if (inR(tx, ty, 40, 17, 42, 28)) return 'path';
-  if (inR(tx, ty, 49, 32, 50, 41)) return 'path';
-  if (inR(tx, ty, 45, 16, 60, 28)) return 'desk';
-  if (inR(tx, ty, 2, 2, 21, 17)) return 'village';
+  if (inR(tx, ty, 17, 21, 46, 23)) return 'road';      // front walk past both doors
+  if (inR(tx, ty, 30, 24, 33, 41)) return 'avenue';    // from the start up to the front walk
+  if (inR(tx, ty, 16, 34, 27, 41) || inR(tx, ty, 37, 34, 47, 41)) return 'village'; // flower meadows
   return 'ground';
 }
 
@@ -172,10 +167,7 @@ const [ground, gx] = mk(WW, WH);
       R(gx, X, Y, T, T, (tx + ty) % 2 ? (v ? C.vil1 : C.g1) : (v ? C.vil2 : C.g2));
       for (let i = 0; i < 3; i++) if (rand() < 0.5) { const a = X + (rand() * 14 | 0), b = Y + (rand() * 14 | 0); R(gx, a, b, 1, 2, v ? C.vilTuft : C.tuft); R(gx, a + 1, b + 1, 1, 1, v ? C.vilTuft : C.tuft2); }
       if (!v && rand() < 0.04) R(gx, X + 7, Y + 7, 2, 2, C.mint3);
-      if (v && rand() < 0.08) { R(gx, X + 5, Y + 9, 1, 1, C.pink); R(gx, X + 11, Y + 4, 1, 1, C.yellow); }
-    } else if (k === 'desk') {
-      R(gx, X, Y, T, T, (tx + ty) % 2 ? C.desk1 : C.desk2);
-      R(gx, X, Y, T, 1, '#2c2650'); R(gx, X, Y, 1, T, '#2c2650');
+      if (v && rand() < 0.12) { R(gx, X + 5, Y + 9, 1, 1, C.pink); R(gx, X + 11, Y + 4, 1, 1, C.yellow); }
     } else if (k === 'plaza') {
       R(gx, X, Y, T, T, (tx + ty) % 2 ? C.plaza : C.plaza2);
       R(gx, X + 7, Y + 7, 2, 2, '#3c4570');
@@ -193,9 +185,9 @@ const [ground, gx] = mk(WW, WH);
     if (isVoid(tx - 1, ty)) R(gx, X, Y, 2, T, C.mint2);
     if (isVoid(tx + 1, ty)) R(gx, X + 14, Y, 2, T, C.mint2);
   }
-  // lane dashes on the avenue & road
-  for (let y = 17 * T; y < 46 * T; y += 12) if (Math.hypot(32 - 32, y / T - PLAZA.y) > PLAZA.r) R(gx, 32 * T - 1, y, 2, 6, C.lane);
-  for (let x = 4 * T; x < 61 * T; x += 12) if (Math.abs(x / T - 32) > PLAZA.r) R(gx, x, 30 * T + 7, 6, 2, C.lane);
+  // lane dashes on the avenue & front walk
+  for (let y = 24 * T; y < 42 * T; y += 12) if (Math.abs(y / T - PLAZA.y) > PLAZA.r) R(gx, 32 * T - 1, y, 2, 6, C.lane);
+  for (let x = 17 * T; x < 47 * T; x += 12) R(gx, x, 22 * T + 7, 6, 2, C.lane);
   // plaza ring
   ring(gx, PLAZA.x * T, PLAZA.y * T + 8, PLAZA.r * T - 6, C.mint2);
   ring(gx, PLAZA.x * T, PLAZA.y * T + 8, PLAZA.r * T - 9, C.mint3);
@@ -206,8 +198,8 @@ function windowGrid(x, X, Y, cols, rows, w, h, gapx, gapy, col) {
   for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) { box(x, X + c * (w + gapx), Y + r * (h + gapy), w, h, col); R(x, X + c * (w + gapx) + 1, Y + r * (h + gapy) + 1, 2, 1, '#bfffe9'); }
 }
 
-// Rooms studio + radio tower
-const TOWER = { x: 26 * T, y: 16 * T, w: 12 * T, h: 184 };
+// Rooms HQ: studio + radio tower
+const TOWER = { x: 19 * T, y: 21 * T - 4, w: 12 * T, h: 184 };
 (function rooms() {
   const [c, x] = mk(TOWER.w, TOWER.h);
   const W = TOWER.w, H = TOWER.h, bodyTop = 84;
@@ -255,215 +247,23 @@ const TOWER = { x: 26 * T, y: 16 * T, w: 12 * T, h: 184 };
   });
 })();
 
-// Ask Rain booth
-const BOOTH = { x: 39 * T, y: 16 * T + 8 };
-(function booth() {
-  const [c, x] = mk(64, 64);
-  box(x, 6, 30, 52, 34, C.wall);
-  for (let i = 0; i < 6; i++) R(x, 4 + i * 9, 24, 9, 8, i % 2 ? C.ink : C.mint);
-  R(x, 4, 32, 56, 2, C.out);
-  box(x, 10, 40, 44, 14, '#0d1124', C.mint2);
-  box(x, 4, 52, 56, 10, '#3a4170');
-  text(x, 'ASK RAIN', 32 - textW('ASK RAIN') / 2, 44, C.mint);
-  // bubble with cat
-  box(x, 18, 0, 28, 20, C.ink);
-  R(x, 28, 19, 4, 3, C.ink); R(x, 29, 21, 2, 2, C.ink);
-  const cat = catSprite(RAIN, 'down', 0); x.drawImage(cat, 24, 2);
-  props.push({ y: BOOTH.y, draw: (g, t) => { g.drawImage(c, BOOTH.x, BOOTH.y - 64 + (Math.sin(t * 2) > 0.95 ? -1 : 0)); } });
-  solid(BOOTH.x + 4, BOOTH.y - 22, 56, 22);
-  lights.push({ x: BOOTH.x + 32, y: BOOTH.y - 20, r: 24, col: C.mint, a: 0.3 });
-})();
+// Rain Cats Mint footprint (the sprite is drawn after the cat tables, further down)
+const MINTB = { x: 34 * T, y: 21 * T - 4, w: 160, h: 128 };
 
-// Cinema
-const CINE = { x: 6 * T, y: 39 * T + 8, w: 160, h: 112 };
-(function cinema() {
-  const [c, x] = mk(CINE.w, CINE.h);
-  const W = CINE.w, H = CINE.h;
-  box(x, 4, 20, W - 8, H - 20, '#2b2346');
-  R(x, 5, 21, W - 10, 4, '#3a2f5e');
-  box(x, 0, 30, W, 22, '#1a1430', C.yellow);
-  text(x, 'CINEMA', W / 2 - textW('CINEMA', 2) / 2, 36, C.yellow, 2);
-  // posters
-  box(x, 14, 60, 26, 36, '#0d1124', C.mint); text(x, 'ROOMS', 15, 66, C.mint); R(x, 20, 76, 14, 14, C.mint3); R(x, 24, 80, 6, 6, C.mint);
-  box(x, W - 40, 60, 26, 36, '#0d1124', C.pink); text(x, '15S', W - 33, 66, C.pink); R(x, W - 34, 76, 14, 14, '#4a1c36'); R(x, W - 30, 80, 6, 6, C.pink);
-  // door
-  box(x, W / 2 - 16, H - 34, 32, 34, '#120d22', C.yellow);
-  R(x, W / 2 - 1, H - 33, 2, 33, '#2a2040');
-  // roof
-  box(x, 10, 6, W - 20, 16, '#3a2f5e'); text(x, 'NOW SHOWING', W / 2 - textW('NOW SHOWING') / 2, 11, C.ink);
-  props.push({ y: CINE.y, draw: (g, t) => {
-    g.drawImage(c, CINE.x, CINE.y - H);
-    const on = Math.floor(t * 4) % 2;
-    for (let i = 0; i < 20; i++) R(g, CINE.x + 3 + i * 8, CINE.y - H + 31, 2, 2, (i % 2) === on ? '#fff3b0' : '#6b5a20');
-    for (let i = 0; i < 20; i++) R(g, CINE.x + 3 + i * 8, CINE.y - H + 49, 2, 2, (i % 2) !== on ? '#fff3b0' : '#6b5a20');
-  } });
-  solid(CINE.x + 4, CINE.y - 56, W - 8, 54);
-  lights.push({ x: CINE.x + W / 2, y: CINE.y - H + 40, r: 70, col: C.yellow, a: 0.18 });
-  lights.push({ x: CINE.x + W / 2, y: CINE.y - 12, r: 22, col: C.yellow, a: 0.25 });
-})();
-
-// Solana trading desk
-const DESK = { x: 47 * T, y: 23 * T + 4, w: 192, h: 104 };
-const chart = Array.from({ length: 40 }, (_, i) => 0.3 + i * 0.008 + Math.sin(i * 0.7) * 0.05);
-(function desk() {
-  const [c, x] = mk(DESK.w, DESK.h);
-  const W = DESK.w, H = DESK.h;
-  box(x, 2, 14, W - 4, H - 14, '#241f44');
-  R(x, 3, 15, W - 6, 5, '#30295a');
-  for (let i = 0; i < W - 6; i++) R(x, 3 + i, 20, 1, 2, i < (W - 6) / 2 ? C.purple : C.mint);
-  box(x, 30, 0, W - 60, 16, '#120f26', C.purple);
-  text(x, 'SOL DESK', W / 2 - textW('SOL DESK', 2) / 2, 3, C.ink, 2);
-  // big screen frame
-  box(x, 16, 28, W - 32, 40, '#06070f', '#5b5590');
-  // goal banner
-  box(x, 16, 72, 52, 12, '#2a1d00', C.yellow); text(x, 'GOAL $3K', 18, 76, C.yellow);
-  box(x, W - 68, 72, 52, 12, '#0d1124', C.mint); text(x, 'BOTS: 7', W - 64, 76, C.mint);
-  // door
-  box(x, W / 2 - 12, H - 22, 24, 22, '#120f26', C.purple);
-  props.push({ y: DESK.y, draw: (g, t) => {
-    g.drawImage(c, DESK.x, DESK.y - H);
-    const sx = DESK.x + 18, sy = DESK.y - H + 30, sw = W - 36, sh = 36;
-    for (let i = 0; i < 6; i++) R(g, sx, sy + i * 7, sw, 1, '#141833');
-    let px = null, py = null;
-    for (let i = 0; i < chart.length; i++) {
-      const X = sx + Math.round(i * (sw - 1) / (chart.length - 1)), Y = sy + sh - 2 - Math.round(chart[i] * (sh - 4));
-      if (px !== null) { const steps = Math.max(Math.abs(X - px), Math.abs(Y - py)); for (let s = 0; s <= steps; s++) R(g, Math.round(px + (X - px) * s / steps), Math.round(py + (Y - py) * s / steps), 1, 1, C.mint); }
-      px = X; py = Y;
-    }
-    if (Math.floor(t * 2) % 2) R(g, px - 1, py - 1, 3, 3, '#ffffff');
-  } });
-  solid(DESK.x + 2, DESK.y - 50, W - 4, 48);
-  lights.push({ x: DESK.x + W / 2, y: DESK.y - H + 48, r: 60, col: C.purple, a: 0.2 });
-})();
-setInterval(() => { const last = chart[chart.length - 1]; let n = last + (Math.random() - 0.42) * 0.06; if (n > 0.95) n = 0.55; if (n < 0.05) n = 0.2; chart.shift(); chart.push(n); }, 700);
-
-// Bots at their desks
-const BOTS = [
-  ['Scout', C.sky, 'Scans the Solana markets for fresh candidates and brings them to the desk.'],
-  ['Guard', C.red, 'Runs the safety checks before the desk touches anything.'],
-  ['Trader', C.mint, 'Places the trades the desk agrees on.'],
-  ['Desk Coach', C.yellow, 'Reviews the desk\'s calls and keeps every bot sharp.'],
-  ['Account Advisor', C.purple, 'Keeps an eye on the account and the plan toward the goal.'],
-  ['Gambler', C.pink, 'Takes the small, high-risk swings, on a short leash.'],
-  ['Twitter Pulse', '#1d9bf0', 'Listens to the chatter on X and reports the mood.']
-];
-function drawBot(g, x, y, col, t, i) {
-  const bob = Math.sin(t * 3 + i) > 0 ? 0 : 1;
-  R(g, x - 1, y - 22 + bob, 1, 4, '#c9d3ea'); R(g, x - 2, y - 24 + bob, 3, 2, col);
-  box(g, x - 7, y - 19 + bob, 14, 10, '#c9d3ea');
-  R(g, x - 5, y - 17 + bob, 10, 6, '#0b0d18');
-  const blink = (t * 1.3 + i * 0.7) % 4 < 0.12;
-  if (!blink) { R(g, x - 4, y - 15 + bob, 2, 2, col); R(g, x + 2, y - 15 + bob, 2, 2, col); }
-  box(g, x - 6, y - 9 + bob, 12, 9, col);
-  R(g, x - 2, y - 7 + bob, 4, 2, C.out);
-}
-BOTS.forEach(([name, col, line], i) => {
-  const x = 46 * T + 14 + i * 28, y = 26 * T + 4;
-  props.push({ y: y - 6, draw: (g, t) => drawBot(g, x, y - 4, col, t, i) });
-  props.push({ y: y + 4, draw: (g, t) => {
-    box(g, x - 10, y - 6, 20, 10, '#3a3260');
-    R(g, x - 9, y - 5, 18, 2, '#4a4180');
-    box(g, x - 5, y - 13, 10, 8, '#0b0d18', '#6c789e');
-    const k = Math.floor(t * 2 + i) % 3; R(g, x - 3, y - 11 + k, 6, 1, col); R(g, x - 3, y - 9, 3, 1, C.mint3);
-  } });
-  solid(x - 10, y - 14, 20, 18);
-  lights.push({ x, y: y - 10, r: 10, col, a: 0.25 });
-  targets.push({ id: 'bot-' + i, x, y: y + 14, r: 13, name, label: name, kind: 'bot', col, card: {
-    tag: 'SOLANA DESK · BOT', title: name, body: line + ' One of seven bots on the desk working together toward a $3k goal.', icon: ['bot', col] } });
-});
-
-// Grok Cats village
-const HOUSES = [[4, 6, C.pink], [9, 4, C.purple], [15, 5, C.orange], [5, 12, C.sky], [16, 11, C.yellow]];
-HOUSES.forEach(([tx, ty, roof], i) => {
-  const X = tx * T, Y = ty * T + 40;
-  const [c, x] = mk(48, 44);
-  box(x, 4, 18, 40, 26, '#3a3550');
-  for (let r = 0; r < 14; r++) { const w = 14 + r * 2; R(x, 24 - w / 2, 4 + r, w, 1, r % 4 === 3 ? C.out : roof); }
-  for (let r = 0; r < 4; r++) { R(x, 17 + (r >> 1), 4 - r, 4 - (r >> 1) * 2, 1, roof); R(x, 27 + (r >> 1), 4 - r, 4 - (r >> 1) * 2, 1, roof); }
-  R(x, 18, 3, 1, 1, C.pink); R(x, 29, 3, 1, 1, C.pink);
-  R(x, 4, 18, 40, 2, C.out);
-  box(x, 19, 28, 10, 16, '#1a1428'); R(x, 23, 30, 2, 2, roof);
-  box(x, 8, 24, 8, 7, '#ffe9a8'); box(x, 32, 24, 8, 7, '#ffe9a8');
-  props.push({ y: Y, draw: g => g.drawImage(c, X, Y - 44) });
-  solid(X + 4, Y - 22, 40, 22);
-  lights.push({ x: X + 12, y: Y - 16, r: 12, col: '#ffe9a8', a: 0.3 });
-  lights.push({ x: X + 36, y: Y - 16, r: 12, col: '#ffe9a8', a: 0.3 });
-});
-function signpost(px, py, label, col, kind) {
+function signpost(px, py, label, col) {
   props.push({ y: py, draw: g => {
     R(g, px - 1, py - 14, 3, 14, '#6a5a45');
     const w = Math.max(24, textW(label) + 8);
-    box(g, px - w / 2, py - 26, w, 13, '#0d1124', col);
+    box(g, Math.round(px - w / 2), py - 26, w, 13, '#0d1124', col);
     text(g, label, px - textW(label) / 2 + 1, py - 22, col);
   } });
   solid(px - 2, py - 3, 5, 3);
 }
-signpost(12 * T + 8, 17 * T + 12, 'GROK CATS', C.yellow);
-lights.push({ x: 12 * T + 8, y: 17 * T - 8, r: 16, col: C.yellow, a: 0.25 });
-
-// Cloudflare gate
-const GATE = { y: 43 * T };
-(function gate() {
-  const lx = 28 * T + 4, rx = 34 * T + 4;
-  [lx, rx].forEach(px => {
-    const [c, x] = mk(24, 56);
-    box(x, 0, 6, 24, 50, '#3a4170'); R(x, 1, 7, 22, 3, '#4a5390');
-    R(x, 4, 18, 16, 2, C.orange); R(x, 4, 40, 16, 2, C.orange);
-    box(x, -2, 0, 28, 8, '#4a5390');
-    props.push({ y: GATE.y, draw: g => g.drawImage(c, px, GATE.y - 56) });
-    solid(px, GATE.y - 14, 24, 14);
-    lights.push({ x: px + 12, y: GATE.y - 30, r: 16, col: C.orange, a: 0.25 });
-  });
-  const [a, ax] = mk(rx + 24 - lx, 34);
-  box(ax, 0, 16, a.width, 14, '#2a2f55', C.orange);
-  text(ax, 'CLOUDFLARE', a.width / 2 - textW('CLOUDFLARE') / 2, 21, C.ink);
-  // shield
-  const sx = a.width / 2 - 7;
-  for (let r = 0; r < 15; r++) { const w = r < 8 ? 14 : 14 - (r - 7) * 2; if (w > 0) R(ax, sx + (14 - w) / 2, r, w, 1, r === 0 ? C.orange2 : C.orange); }
-  R(ax, sx + 6, 2, 2, 7, '#fff4e0'); R(ax, sx + 4, 4, 6, 2, '#fff4e0');
-  // re-draw text below shield
-  overhead.push((g, t) => {
-    g.drawImage(a, lx, GATE.y - 70);
-    const k = (Math.sin(t * 2) + 1) / 2;
-    const by = GATE.y - 40 + Math.round(k * 26);
-    g.globalAlpha = 0.6; R(g, lx + 24, by, rx - lx - 24, 1, C.orange); g.globalAlpha = 0.25; R(g, lx + 24, by - 1, rx - lx - 24, 3, C.orange); g.globalAlpha = 1;
-  });
-})();
-
-// Home screen icon monument
-const MON = { x: PLAZA.x * T, y: PLAZA.y * T + 14 };
-const iconImg = new Image();
-let iconPix = null;
-iconImg.onload = () => { const [c, x] = mk(28, 28); x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high'; x.drawImage(iconImg, 0, 0, 28, 28); iconPix = c; };
-iconImg.src = 'assets/rooms-icon.png';
-props.push({ y: MON.y, draw: (g, t) => {
-  box(g, MON.x - 22, MON.y - 10, 44, 10, '#4a5390'); R(g, MON.x - 21, MON.y - 9, 42, 2, '#5c66a8');
-  box(g, MON.x - 18, MON.y - 46, 36, 37, '#2a3150', C.mint2);
-  const bob = Math.round(Math.sin(t * 1.5) * 1);
-  if (iconPix) g.drawImage(iconPix, MON.x - 14, MON.y - 42 + bob);
-  if (Math.floor(t * 3) % 5 === 0) R(g, MON.x + 10, MON.y - 44 + bob, 2, 2, '#ffffff');
-  if (Math.floor(t * 3 + 2) % 7 === 0) R(g, MON.x - 13, MON.y - 18 + bob, 1, 1, '#ffffff');
-} });
-solid(MON.x - 22, MON.y - 12, 44, 12);
-lights.push({ x: MON.x, y: MON.y - 28, r: 34, col: C.mint, a: 0.3 });
-
-// Rooms feature signposts along the avenue
-const FEATURES = [
-  ['FEED', 'Feed', 'The public Rooms Feed: posts, announcements, animated GIFs and token communities, open to guests before they connect a wallet.', 'feed'],
-  ['CHARTS', 'Solana charts', 'Public Solana charts for tokens used in Rooms. Pick a cashtag and attach the exact token chart to a Feed post.', 'chart'],
-  ['JUPITER', 'Jupiter trading', 'Jupiter Solana trading embedded right inside live rooms and token charts.', 'jup'],
-  ['GIFS', 'GIF picker', 'A searchable stock GIF picker with 24 reactions, plus animated GIF uploads in Feed posts.', 'gif'],
-  ['PEOPLE', 'People search', 'Find people by name or handle. Profiles can wear any color, gradient, or photo card look.', 'search'],
-  ['SOUNDS', 'Soundboard', 'A synchronized room soundboard: claps, boos and a horn that everyone in the room hears at once.', 'sound']
-];
-FEATURES.forEach(([lab, title, body, icon], i) => {
-  const left = i % 2 === 0, row = (i / 2) | 0;
-  const px = (left ? 28 : 36) * T + (left ? 6 : 10), py = (19 + row * 3) * T + 10;
-  signpost(px, py, lab, C.mint);
-  lights.push({ x: px, y: py - 20, r: 14, col: C.mint, a: 0.22 });
-  targets.push({ id: 'sign-' + icon, x: px + (left ? 18 : -18), y: py, r: 20, name: title, label: title, kind: 'sign', card: {
-    tag: 'ROOMS DISTRICT · FEATURE', title, body, icon: [icon], links: [{ label: 'Open Rooms', href: 'https://www.intherooms.xyz' }] } });
-});
+// plaza signposts pointing at the two doors
+signpost(29 * T + 4, 26 * T + 10, 'ROOMS', C.mint);
+signpost(35 * T + 12, 26 * T + 10, 'MINT', C.pink);
+lights.push({ x: 29 * T + 4, y: 26 * T - 10, r: 14, col: C.mint, a: 0.22 });
+lights.push({ x: 35 * T + 12, y: 26 * T - 10, r: 14, col: C.pink, a: 0.22 });
 
 // lamps & trees
 function lamp(px, py) {
@@ -471,8 +271,8 @@ function lamp(px, py) {
   solid(px - 1, py - 3, 4, 3);
   lights.push({ x: px + 1, y: py - 21, r: 22, col: C.mint, a: 0.28, flick: 1 });
 }
-for (let y = 19; y <= 43; y += 4) { if (Math.abs(y - PLAZA.y) < 5) continue; lamp(29 * T + 10, y * T + 14); lamp(34 * T + 4, y * T + 14); }
-for (let x = 6; x <= 58; x += 6) { if (Math.abs(x - 32) < 6) continue; lamp(x * T + 4, 29 * T - 1); lamp(x * T + 4, 32 * T + 14); }
+for (let y = 25; y <= 41; y += 4) { if (Math.abs(y - PLAZA.y) < 4) continue; lamp(29 * T + 10, y * T + 14); lamp(34 * T + 4, y * T + 14); }
+[17, 46].forEach(x => lamp(x * T + 4, 24 * T + 2));
 
 function tree(px, py, v) {
   const tones = [['#1e5c4f', '#2b7a64', '#123d36'], ['#3d3a7a', '#5752a8', '#26244f'], ['#1f4f62', '#2b6d85', '#143644']][v % 3];
@@ -486,51 +286,37 @@ function tree(px, py, v) {
   } });
   solid(px - 3, py - 4, 7, 4);
 }
-const RESERVED = [[25, 4, 38, 17], [38, 12, 45, 18], [5, 31, 17, 40], [45, 15, 61, 29], [27, 39, 37, 46], [26, 17, 38, 28], [43, 32, 57, 43]];
-const reserved = (tx, ty) => RESERVED.some(([a, b, c, d]) => inR(tx, ty, a, b, c, d)) || HOUSES.some(([hx, hy]) => inR(tx, ty, hx - 1, hy - 1, hx + 3, hy + 3)) || inR(tx, ty, 10, 16, 14, 18);
-for (let i = 0; i < 140; i++) {
-  const tx = 2 + (rand() * 60 | 0), ty = 3 + (rand() * 43 | 0);
+// keep trees off the buildings, the plaza, the signposts and the paths between them
+const RESERVED = [[18, 6, 31, 24], [33, 10, 45, 24], [27, 24, 37, 34], [16, 24, 18, 26], [45, 24, 47, 26]];
+const reserved = (tx, ty) => RESERVED.some(([a, b, c, d]) => inR(tx, ty, a, b, c, d));
+for (let i = 0; i < 160; i++) {
+  const tx = 15 + (rand() * 34 | 0), ty = 6 + (rand() * 37 | 0);
   const k = tileKind(tx, ty);
   if ((k !== 'ground' && k !== 'village') || reserved(tx, ty)) continue;
-  const near = (dx, dy) => { const kk = tileKind(tx + dx, ty + dy); return kk === 'void' || kk === 'path' || kk === 'road' || kk === 'avenue' || kk === 'plaza' || kk === 'desk'; };
+  const near = (dx, dy) => { const kk = tileKind(tx + dx, ty + dy); return kk === 'void' || kk === 'road' || kk === 'avenue' || kk === 'plaza'; };
   if (near(0, 1) || near(0, -1) || near(1, 0) || near(-1, 0)) continue;
-  if (k === 'village' && ty > 8 && rand() < 0.6) continue;
+  if (k === 'village' && rand() < 0.7) continue; // meadows stay open for the cats
   tree(tx * T + 8, ty * T + 14, (rand() * 12) | 0);
 }
 
 // ---------- landmark targets ----------
-targets.push({ id: 'rooms', x: TOWER.x + TOWER.w / 2, y: TOWER.y + 12, r: 28, name: 'Rooms', label: 'Rooms studio', kind: 'main', card: {
-  tag: 'THE MAIN ONE · LIVE AUDIO', title: 'Rooms',
-  body: 'Clubhouse-style live audio rooms. Sign in with Phantom on Solana, show up as a cat avatar, fire off emoji reactions, tip speakers in SOL, bring up co-hosts, and get help any time from the Ask Rain support bubble.',
+const ROOMS_URL = 'https://www.intherooms.xyz';
+targets.push({ id: 'rooms', mdy: 46, x: TOWER.x + TOWER.w / 2, y: TOWER.y + 12, r: 30, name: 'Rooms HQ', label: 'Rooms HQ', kind: 'main', go: ROOMS_URL, card: {
+  tag: 'ROOMS HQ · LIVE AUDIO', title: 'Rooms',
+  body: 'Clubhouse-style live audio rooms on Solana. Sign in with Phantom, show up as a cat avatar, react, tip speakers in SOL and bring up co-hosts. Rooms check-mark members also get a free Rain Cat.',
   media: { type: 'img', src: 'assets/rooms-icon.png', alt: 'Rooms app icon' },
-  links: [{ label: 'Open intherooms.xyz', href: 'https://www.intherooms.xyz' }, { label: 'GitHub repo', href: 'https://github.com/samsagewize/Rooms', alt: 1 }],
+  links: [{ label: 'Open intherooms.xyz', href: ROOMS_URL }],
   credit: 'Made by Urua Labs', icon: ['tower'] } });
-targets.push({ id: 'askrain', x: BOOTH.x + 32, y: BOOTH.y + 12, r: 22, name: 'Ask Rain', label: 'Ask Rain booth', kind: 'main', card: {
-  tag: 'ROOMS · SUPPORT', title: 'Ask Rain', body: 'My support bubble inside Rooms. It floats in the corner of the app, and you can ask it how anything in Rooms works, from connecting Phantom to starting a room.',
-  links: [{ label: 'Try it in Rooms', href: 'https://www.intherooms.xyz' }], icon: ['rain'] } });
-targets.push({ id: 'cinema', x: CINE.x + CINE.w / 2, y: CINE.y + 12, r: 26, name: 'Rooms promo cinema', label: 'Cinema', kind: 'main', card: {
-  tag: 'NOW SHOWING · 15 SECONDS', title: 'Rooms promo', body: 'The 15-second promo video we made for Rooms. Press play.',
-  media: { type: 'video', src: 'assets/rooms-promo.mp4' }, links: [{ label: 'Open Rooms', href: 'https://www.intherooms.xyz' }], icon: ['film'] } });
-targets.push({ id: 'gate', mdy: 62, x: 32 * T, y: GATE.y - 20, r: 26, name: 'Cloudflare shield gate', label: 'Cloudflare gate', kind: 'main', card: {
-  tag: 'SECURITY · THE FRONT GATE', title: 'Cloudflare shield', body: 'intherooms.xyz sits behind Cloudflare with Bot Fight Mode turned on, so automated bots get challenged at the gate before they ever reach a room.',
-  links: [{ label: 'intherooms.xyz', href: 'https://www.intherooms.xyz' }], icon: ['shield'] } });
-targets.push({ id: 'grokcats', mdy: 46, x: 12 * T + 8, y: 18 * T + 10, r: 24, name: 'Grok Cats village', label: 'Grok Cats village', kind: 'main', card: {
-  tag: 'VILLAGE · OPEN TO OTHER BOTS', title: 'Grok Cats', body: 'A cozy pixel garden where every cat is a Grok agent. They wander, sit, and work, and other Grok bots can join over HTTP and walk around as their own cat.',
-  links: [{ label: 'GitHub repo', href: 'https://github.com/samsagewize/grok-cats' }], icon: ['cat'] } });
-targets.push({ id: 'desk', x: DESK.x + DESK.w / 2, y: DESK.y + 10, r: 22, name: 'Solana trading desk', label: 'Solana trading desk', kind: 'main', card: {
-  tag: 'TRADING FLOOR · 7 BOTS', title: 'Solana trading desk', body: 'A little trading floor of bots that work together on Solana: Scout, Guard, Trader, Desk Coach, Account Advisor, Gambler and Twitter Pulse, all working toward a $3k goal. Walk along the desks to meet each one.',
-  icon: ['chart'] } });
-targets.push({ id: 'icon', mdy: 74, x: MON.x, y: MON.y + 12, r: 22, name: 'Home screen icon monument', label: 'Icon monument', kind: 'main', card: {
-  tag: 'MONUMENT · HOME SCREEN', title: 'The Rooms app icon', body: 'The home screen icon we gave Rooms, along with a web app manifest, so it sits on an iPhone home screen like a real app.',
-  media: { type: 'img', src: 'assets/rooms-icon.png', alt: 'Rooms home screen icon' }, links: [{ label: 'Add Rooms to your home screen', href: 'https://www.intherooms.xyz' }], icon: ['icon'] } });
 
-// ---------- village cats ----------
+// ---------- roaming cats in the meadows ----------
+const MEADOWS = [[16 * T + 8, 34 * T + 8, 27 * T + 8, 41 * T + 8], [37 * T + 8, 34 * T + 8, 47 * T + 8, 41 * T + 8]];
 VILLAGE_PALS.forEach((pal, i) => {
-  npcs.push({ pal, x: (5 + i * 3) * T, y: (9 + (i % 3) * 2) * T + 8, tx: 0, ty: 0, wait: rand() * 2, dir: 'down', frame: 0, ft: 0, bounds: [3 * T, 3 * T + 8, 21 * T, 17 * T], meow: 0 });
+  const b = MEADOWS[i % 2];
+  npcs.push({ pal, x: b[0] + 16 + (i * 37) % (b[2] - b[0] - 32), y: b[1] + 8 + (i * 23) % (b[3] - b[1] - 16), tx: 0, ty: 0, wait: rand() * 2, dir: 'down', frame: 0, ft: 0, bounds: b, meow: 0 });
 });
 
 // ---------- player ----------
-const player = { x: 32 * T, y: 37 * T, dir: 'up', frame: 0, ft: 0, moving: false };
+const player = { x: 32 * T, y: 26 * T + 4, dir: 'up', frame: 0, ft: 0, moving: false };
 const SPEED = 72;
 
 // ---------- collision ----------
@@ -555,11 +341,12 @@ const KEYMAP = { ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down', Arr
 addEventListener('keydown', e => {
   if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
   if (document.body.classList.contains('rc')) { if (e.code === 'Escape' && window.RainCats) window.RainCats.close(); return; }
-  if (cmIsOpen()) { if (e.code === 'Escape') cmClose(); else if (e.code === 'KeyR') { e.preventDefault(); cmRandomize(); } return; }
+  if (!picker.classList.contains('hidden')) { if (e.code === 'Escape') closePicker(); return; }
   const d = KEYMAP[e.code];
   if (d) { keys.add(d); tapTarget = null; e.preventDefault(); hideToast(); }
   else if (e.code === 'KeyE' || e.code === 'Enter' || e.code === 'Space') { if (document.activeElement && document.activeElement.tagName === 'A') return; e.preventDefault(); interact(); }
   else if (e.code === 'Escape') { closeDialog(true); closePlaces(); }
+  else if (e.code === 'KeyC') openPicker(true);
   else if (e.code === 'KeyM') togglePlaces();
   else if (e.code === 'KeyR') toggleRain();
   else if (e.code === 'KeyN') toggleSound();
@@ -641,7 +428,7 @@ function drawIcon(kind, col) {
     case 'shield': for (let y = 0; y < 15; y++) { const w = y < 8 ? 12 : 12 - (y - 7) * 2; r((16 - w) / 2, 1 + y, w, 1, C.orange); } r(7, 4, 2, 6, '#fff4e0'); r(5, 6, 6, 2, '#fff4e0'); break;
     case 'chart': r(1, 1, 14, 14, '#06070f'); [[2, 12], [4, 10], [6, 11], [8, 7], [10, 8], [12, 4], [13, 3]].forEach(([x, y]) => r(x, y, 2, 1, C.mint)); r(1, 14, 14, 1, C.purple); break;
     case 'bot': r(7, 0, 2, 3, '#c9d3ea'); r(3, 3, 10, 7, '#c9d3ea'); r(4, 4, 8, 5, C.out); r(5, 5, 2, 2, col); r(9, 5, 2, 2, col); r(4, 10, 8, 6, col); break;
-    case 'catmaker': ic.drawImage(catSprite(lookFrom(cmWindowCats[Math.floor(Date.now() / 1000) % 8 || 0]), 'down', 0), 0, 0); break;
+    case 'mint': { const s = SR[Math.floor(Date.now() / 1500) % SR.length]; ic.drawImage(catSprite(s.look, 'down', 0), 0, 0); break; }
     case 'icon': if (iconPix) ic.drawImage(iconPix, 0, 0, 16, 16); break;
     case 'feed': r(2, 2, 12, 12, C.ink); for (let i = 0; i < 3; i++) { r(4, 4 + i * 3, 2, 2, C.mint); r(7, 4 + i * 3, 5, 1, '#6c789e'); } break;
     case 'jup': ring(ic, 8, 8, 6, C.mint); ring(ic, 8, 8, 4, C.yellow); ring(ic, 8, 8, 2, C.sky); r(7, 7, 2, 2, C.ink); break;
@@ -657,7 +444,7 @@ function openDialog(t) {
   if (c.media && c.media.type === 'img') { const im = new Image(); im.src = c.media.src; im.alt = c.media.alt || ''; media.appendChild(im); }
   if (c.media && c.media.type === 'video') { const v = document.createElement('video'); v.src = c.media.src; v.controls = true; v.playsInline = true; v.setAttribute('playsinline', ''); v.muted = !soundOn; v.preload = 'metadata'; media.appendChild(v); }
   const links = $('dlgLinks'); links.innerHTML = '';
-  (c.links || []).forEach(l => { if (l.action) { const b = document.createElement('button'); b.className = 'act'; b.textContent = l.label; b.addEventListener('click', () => l.action === 'catmaker' ? cmOpen() : rcOpen(l.action)); links.appendChild(b); return; } const a = document.createElement('a'); a.href = l.href; a.target = '_blank'; a.rel = 'noopener'; a.textContent = l.label; if (l.alt) a.className = 'alt'; links.appendChild(a); });
+  (c.links || []).forEach(l => { if (l.action) { const b = document.createElement('button'); b.className = 'act'; b.textContent = l.label; if (l.cls) b.classList.add(l.cls); b.addEventListener('click', () => l.action === 'pick' ? openPicker(true) : rcOpen(l.action)); links.appendChild(b); return; } const a = document.createElement('a'); a.href = l.href; a.target = '_blank'; a.rel = 'noopener'; a.textContent = l.label; if (l.alt) a.className = 'alt'; if (l.cls) a.classList.add(l.cls); links.appendChild(a); });
   $('dlgCredit').textContent = c.credit || '';
   drawIcon(c.icon[0], c.icon[1]);
   dlg.classList.remove('hidden'); document.body.classList.add('dlg');
@@ -677,7 +464,11 @@ function nearest() {
 }
 function interact() {
   const n = nearest();
-  if (n) { if (openId === n.id && n.id === 'catmaker') cmOpen(); else if (openId === n.id) closeDialog(true); else { dismissed.delete(n.id); openDialog(n); } }
+  if (!n) return;
+  // second press at a door goes inside: Rooms HQ opens intherooms.xyz, the Mint opens the mint panel
+  if (openId === n.id && n.go) { window.open(n.go, '_blank', 'noopener'); closeDialog(true); }
+  else if (openId === n.id && n.action) rcOpen(n.action);
+  else if (openId === n.id) closeDialog(true); else { dismissed.delete(n.id); openDialog(n); }
 }
 let nearT = null;
 function updateProximity() {
@@ -697,7 +488,7 @@ function buildPlaces() {
     const b = document.createElement('button');
     b.innerHTML = '';
     b.textContent = t.name; const s = document.createElement('small'); s.textContent = t.card.tag; b.appendChild(s);
-    b.addEventListener('click', () => { closePlaces(); closeDialog(false); player.x = t.x; player.y = t.y; player.dir = 'up'; tapTarget = null; dismissed.delete(t.id); updateCam(); });
+    b.addEventListener('click', () => goTo(t.id));
     list.appendChild(b);
   });
 }
@@ -866,7 +657,7 @@ function loop(now) {
 }
 
 // ======================================================================
-// ---------- CAT MAKER ----------
+// ---------- CAT TRAITS (Rain Cats DNA) ----------
 // ======================================================================
 const RAINBOW = ['#ff5a6e', '#f6a04d', '#ffd66b', '#7ad97a', '#6bc6ff', '#b78bff'];
 const CM = {
@@ -1023,178 +814,244 @@ function renderPortrait(g, v, t) {
   drawAcc(g, look.acc, ox, oy, t);
 }
 
-// ---- building ----
-const CMB = { x: 728, y: 41 * T, w: 144, h: 104 };
-const cmWindowCats = Array.from({ length: 8 }, () => { const v = {}; CM_KEYS.forEach(k => v[k] = cmPick(k)); return v; });
-(function catMakerBuilding() {
-  const [c, x] = mk(CMB.w, CMB.h);
-  const W = CMB.w, H = CMB.h;
-  // cat-ear roof
-  for (let i = 0; i < 26; i++) { const w = Math.round(i * 1.4); R(x, 16 + 18 - w, 8 + i, w * 2 + 1, 1, '#5b3bb0'); R(x, W - 16 - 18 - w - 1, 8 + i, w * 2 + 1, 1, '#5b3bb0'); }
-  for (let i = 6; i < 24; i++) { const w = Math.round((i - 6) * 0.8); R(x, 34 - w, 8 + i, w * 2 + 1, 1, C.pink); R(x, W - 35 - w, 8 + i, w * 2 + 1, 1, C.pink); }
-  box(x, 4, 32, W - 8, 12, '#6e4cc8'); R(x, 5, 33, W - 10, 2, '#8a6be0');
-  // walls
-  box(x, 8, 44, W - 16, H - 44, '#3b2f5c'); R(x, 9, 45, W - 18, 3, '#4a3b72');
-  for (let i = 0; i < W - 18; i += 6) R(x, 9 + i, H - 6, 3, 5, '#33284f');
-  // sign
-  box(x, W / 2 - 26, 16, 52, 14, '#0d1124', C.pink);
-  text(x, 'CAT MAKER', W / 2 - textW('CAT MAKER') / 2, 21, C.ink);
-  // windows
-  box(x, 16, 54, 30, 26, '#0b0e1c', C.mint); box(x, W - 46, 54, 30, 26, '#0b0e1c', C.mint);
-  // palette dots in right window
-  [[C.pink, 6, 8], [C.yellow, 12, 6], [C.mint, 18, 9], [C.sky, 10, 14], [C.purple, 17, 16]].forEach(([col, dx, dy]) => R(x, W - 46 + dx, 54 + dy, 3, 3, col));
-  // door with paw
-  box(x, W / 2 - 13, H - 34, 26, 34, '#1a1430', C.pink);
-  R(x, W / 2 - 3, H - 22, 6, 5, C.pink); R(x, W / 2 - 5, H - 26, 2, 2, C.pink); R(x, W / 2 - 1, H - 28, 2, 2, C.pink); R(x, W / 2 + 3, H - 26, 2, 2, C.pink);
-  props.push({ y: CMB.y, draw: (g, t) => {
-    g.drawImage(c, CMB.x, CMB.y - H);
+// ---- Rain Cats Mint building ----
+const mintWindowCats = SR.map(s => s.look).concat(Array.from({ length: 9 }, () => { const v = {}; CM_KEYS.forEach(k => v[k] = cmPick(k)); return lookFrom(v); }));
+(function mintBuilding() {
+  const [c, x] = mk(MINTB.w, MINTB.h);
+  const W = MINTB.w, H = MINTB.h;
+  // cat ears on the roof sign
+  [22, W - 22].forEach(ex => { for (let r = 0; r < 13; r++) { const w = 2 + r * 2; R(x, ex - w / 2, r, w, 1, C.pink); if (r > 4) R(x, ex - (r - 4) / 2, r, (r - 4) | 0, 1, '#ffb3c9'); } });
+  // body
+  box(x, 4, 40, W - 8, H - 40, '#2b2346');
+  R(x, 5, 41, W - 10, 4, '#3a2f5e');
+  R(x, 5, H - 6, W - 10, 5, '#1f1838');
+  // big roof sign
+  box(x, 6, 12, W - 12, 26, '#0d1124', C.pink);
+  text(x, 'RAIN CATS', W / 2 - textW('RAIN CATS', 2) / 2, 18, C.ink, 2);
+  // striped awning
+  for (let i = 0; i * 10 < W - 4; i++) { const col = i % 2 ? C.ink : C.pink; R(x, 2 + i * 10, 38, 10, 9, col); R(x, 4 + i * 10, 47, 6, 3, col); }
+  R(x, 2, 38, W - 4, 1, C.out);
+  // price sign
+  box(x, W / 2 - 31, 54, 62, 11, '#0d1124', C.mint);
+  text(x, 'MINT 0.04 SOL', W / 2 - textW('MINT 0.04 SOL') / 2, 57, C.mint);
+  // display windows
+  box(x, 12, 70, 40, 34, '#0b0e1c', C.mint); box(x, W - 52, 70, 40, 34, '#0b0e1c', C.mint);
+  R(x, 13, 102, 38, 1, C.mint3); R(x, W - 51, 102, 38, 1, C.mint3);
+  // door with a paw
+  box(x, W / 2 - 14, H - 38, 28, 38, '#1a1430', C.yellow);
+  R(x, W / 2 - 3, H - 24, 6, 5, C.pink); R(x, W / 2 - 5, H - 28, 2, 2, C.pink); R(x, W / 2 - 1, H - 30, 2, 2, C.pink); R(x, W / 2 + 3, H - 28, 2, 2, C.pink);
+  props.push({ y: MINTB.y, draw: (g, t) => {
+    const X = MINTB.x, Y = MINTB.y - H;
+    g.drawImage(c, X, Y);
     const on = Math.floor(t * 2) % 2;
-    R(g, CMB.x + W / 2 - 26, CMB.y - H + 16, 52, 1, on ? C.pink : C.mint); R(g, CMB.x + W / 2 - 26, CMB.y - H + 29, 52, 1, on ? C.mint : C.pink);
-    // a different cat in the window every second
-    const v = cmWindowCats[(((Math.floor(t / 1.1) % 8) + 8) % 8) || 0];
-    g.drawImage(catSprite(lookFrom(v), 'down', 0), CMB.x + 23, CMB.y - H + 61);
-    // sparkles from the roof
-    for (let i = 0; i < 3; i++) { const k = (t * 0.8 + i / 3) % 1; R(g, CMB.x + W / 2 - 20 + i * 20 + Math.round(Math.sin(t * 3 + i) * 2), CMB.y - H + 12 - Math.round(k * 14), 1, 1, i === 1 ? C.yellow : C.mint); }
+    R(g, X + 6, Y + 12, W - 12, 1, on ? C.pink : C.mint); R(g, X + 6, Y + 37, W - 12, 1, on ? C.mint : C.pink);
+    // a different Rain Cat in the left window, a mystery box in the right one
+    const n = mintWindowCats.length, look = mintWindowCats[((Math.floor(t / 1.2) % n) + n) % n] || RAIN;
+    g.drawImage(catSprite(look, 'down', 0), X + 24, Y + 85);
+    drawAcc(g, look.acc, X + 24, Y + 85, t);
+    const by = Y + 84 + (Math.sin(t * 3) > 0 ? 0 : 1), bx = X + W - 40;
+    R(g, bx, by + 4, 16, 11, '#04050a'); R(g, bx + 1, by + 5, 14, 9, '#b78bff'); R(g, bx - 1, by, 18, 5, '#04050a'); R(g, bx, by + 1, 16, 3, C.pink);
+    R(g, bx + 7, by, 2, 15, C.yellow); R(g, bx + 1, by + 8, 14, 2, C.yellow);
+    if (on) { R(g, bx + 3, by + 6, 1, 1, '#ffffff'); R(g, bx + 12, by + 11, 1, 1, '#ffffff'); }
+    for (let i = 0; i < 4; i++) { const k = (t * 0.7 + i / 4) % 1; R(g, X + 24 + i * 36 + Math.round(Math.sin(t * 3 + i) * 2), Y + 10 - Math.round(k * 14), 1, 1, i % 2 ? C.yellow : C.mint); }
   } });
-  solid(CMB.x + 8, CMB.y - 50, W - 16, 48);
-  lights.push({ x: CMB.x + W / 2, y: CMB.y - H + 22, r: 40, col: C.pink, a: 0.3 });
-  lights.push({ x: CMB.x + 31, y: CMB.y - H + 67, r: 16, col: C.mint, a: 0.3 });
-  lights.push({ x: CMB.x + W - 31, y: CMB.y - H + 67, r: 16, col: C.mint, a: 0.3 });
-  lights.push({ x: CMB.x + W / 2, y: CMB.y - 12, r: 20, col: C.pink, a: 0.25 });
+  solid(MINTB.x + 4, MINTB.y - 60, W - 8, 58);
+  lights.push({ x: MINTB.x + W / 2, y: MINTB.y - H + 24, r: 50, col: C.pink, a: 0.3 });
+  lights.push({ x: MINTB.x + 32, y: MINTB.y - H + 88, r: 18, col: C.mint, a: 0.3 });
+  lights.push({ x: MINTB.x + W - 32, y: MINTB.y - H + 88, r: 18, col: C.mint, a: 0.3 });
+  lights.push({ x: MINTB.x + W / 2, y: MINTB.y - 14, r: 22, col: C.yellow, a: 0.25 });
 })();
-targets.push({ id: 'catmaker', mdy: 40, x: CMB.x + CMB.w / 2, y: CMB.y + 12, r: 24, name: 'Cat Maker', label: 'Cat Maker', kind: 'main', card: {
-  tag: 'WORKSHOP · MAKE A CAT', title: 'Cat Maker', body: 'My cat workshop. Roll a random cat in my exact pixel style, with different fur, eyes, collars, patterns and hats. Lock the traits you love, re-roll the rest, then download it, share the link, or let it loose in the world. New: mint a mystery Rain Cat NFT on Solana, then walk around as it.',
-  links: [{ label: 'Open Cat Maker', action: 'catmaker' }, { label: 'Mint a mystery cat \u00b7 0.04 SOL', action: 'mint' }, { label: 'My Rain Cats', action: 'mine' }], icon: ['catmaker'] } });
+const VERIFIED_LABEL = 'Verified \u2713? Claim your free cat at intherooms.xyz/mint';
+targets.push({ id: 'mint', mdy: 46, x: MINTB.x + MINTB.w / 2, y: MINTB.y + 12, r: 30, name: 'Rain Cats Mint', label: 'Rain Cats Mint', kind: 'main', action: 'mint', card: {
+  tag: 'RAIN CATS · SOLANA NFT', title: 'Rain Cats Mint',
+  body: '1,000 pixel cats in my exact style, with 9 one-of-one Super Rares. Mint a mystery cat for 0.04 SOL and see it only after you pay. Then connect your wallet and walk around my world as your own cat.',
+  links: [{ label: 'Mint a mystery cat \u00b7 0.04 SOL', action: 'mint' }, { label: 'My Rain Cats', action: 'mine', cls: 'alt' }, { label: 'Walk as my cat', action: 'pick', cls: 'alt' },
+    { label: VERIFIED_LABEL, href: ROOMS_URL + '/mint', cls: 'verified' }], icon: ['mint'] } });
 
-// ---- panel ----
-const cmEl = $('catmaker'), cmPrev = $('cmPreview'), cmPctx = cmPrev.getContext('2d');
-cmPctx.imageSmoothingEnabled = false;
-let cmV = Object.assign({}, RAIN_V); const cmLocks = new Set(); let cmTimer = null, cmRolling = false;
-const cmSwatch = (k, o) => k === 'fur' || k === 'belly' || k === 'eyes' || k === 'collar' ? (o.rainbow ? 'linear-gradient(90deg,#ff5a6e,#ffd66b,#7ad97a,#6bc6ff,#b78bff)' : (o.c || CM.fur[cmV.fur].c)) : k === 'ears' ? o.ear : null;
-function cmBuildUI() {
-  const box_ = $('cmTraits'); box_.innerHTML = '';
-  const rows = CM_ROWS.concat([['name', 'NAME']]);
-  rows.forEach(([k, label]) => {
-    const row = document.createElement('div'); row.className = 'trait'; row.dataset.k = k;
-    row.innerHTML = '<span class="tl"></span><button class="arr" data-d="-1" aria-label="Previous">&#9664;</button><span class="tv"><i></i><b></b></span><button class="arr" data-d="1" aria-label="Next">&#9654;</button><button class="lock" aria-label="Lock">&#128275;</button>';
-    row.querySelector('.tl').textContent = label;
-    row.querySelectorAll('.arr').forEach(b => b.addEventListener('click', () => {
-      const d = +b.dataset.d;
-      if (k === 'name') { cmV.title = cmPick('title'); cmV.first = cmPick('first'); cmV.last = cmPick('last'); }
-      else cmV[k] = (cmV[k] + d + CM[k].length) % CM[k].length;
-      cmRender(); blip(520);
-    }));
-    row.querySelector('.lock').addEventListener('click', () => { cmLocks.has(k) ? cmLocks.delete(k) : cmLocks.add(k); cmRender(); });
-    box_.appendChild(row);
-  });
-}
-function cmRender() {
-  renderPortrait(cmPctx, cmV, time);
-  $('cmName').textContent = cmName(cmV);
-  const rar = cmRarity(cmV), rt = $('cmRarity');
-  rt.textContent = rar.toUpperCase(); rt.className = 'rar-' + rar.toLowerCase();
-  document.querySelectorAll('#cmTraits .trait').forEach(row => {
-    const k = row.dataset.k, locked = cmLocks.has(k);
-    row.classList.toggle('locked', locked);
-    const lk = row.querySelector('.lock'); lk.innerHTML = locked ? '&#128274;' : '&#128275;'; lk.classList.toggle('on', locked); lk.setAttribute('aria-pressed', locked);
-    const o = k === 'name' ? null : CM[k][cmV[k]];
-    row.querySelector('.tv b').textContent = k === 'name' ? cmName(cmV) : o.n;
-    const sw = o && cmSwatch(k, o), i = row.querySelector('.tv i');
-    i.style.display = sw ? 'inline-block' : 'none'; if (sw) i.style.background = sw;
-  });
-  const me = localStorage.getItem('rainworld.me');
-  $('cmBack').classList.toggle('hidden', !me);
-  if (!cmEl.classList.contains('hidden')) history.replaceState(null, '', location.pathname + '?cat=' + cmCode(cmV));
-}
-function cmRandomize() {
-  if (cmRolling) return;
-  cmRolling = true;
-  const stage = $('cmStage'), dice = $('cmDice');
-  stage.classList.remove('shake'); dice.classList.remove('roll'); void stage.offsetWidth;
-  stage.classList.add('shake'); dice.classList.add('roll');
-  let n = 0;
-  const roll = () => {
-    CM_KEYS.forEach(k => { const base = k === 'title' || k === 'first' || k === 'last' ? 'name' : k; if (!cmLocks.has(base)) cmV[k] = cmPick(k); });
-    cmRender(); blip(380 + n * 60);
-    if (++n < 7) setTimeout(roll, 65); else cmRolling = false;
-  };
-  roll();
-}
-function cmOpen(v) {
-  if (v) cmV = Object.assign({}, v);
-  closeDialog(false); closePlaces(); keys.clear(); padDirs.clear(); tapTarget = null; hideToast();
-  cmEl.classList.remove('hidden'); document.body.classList.add('cm');
-  cmRender(); clearInterval(cmTimer); cmTimer = setInterval(() => renderPortrait(cmPctx, cmV, time), 120);
-}
-function cmClose() {
-  if (cmEl.classList.contains('hidden')) return;
-  cmEl.classList.add('hidden'); document.body.classList.remove('cm'); clearInterval(cmTimer);
-  dismissed.add('catmaker');
-  history.replaceState(null, '', location.pathname);
-}
-const cmIsOpen = () => !cmEl.classList.contains('hidden');
-function cmDataURL(v) {
-  const [p, px] = mk(32, 32); renderPortrait(px, v, 0.3);
-  const [c, x] = mk(1024, 1024); x.imageSmoothingEnabled = false; x.drawImage(p, 0, 0, 1024, 1024);
-  return c.toDataURL('image/png');
-}
-function cmDownload() {
-  const url = cmDataURL(cmV);
-  const bin = atob(url.split(',')[1]), arr = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
-  const blob = new Blob([arr], { type: 'image/png' });
-  const fname = cmName(cmV).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + '-' + cmCode(cmV) + '.png';
-  let file = null; try { file = new File([blob], fname, { type: 'image/png' }); } catch (e) { /* old Safari */ }
-  if (isTouch && file && navigator.canShare && navigator.canShare({ files: [file] })) {
-    navigator.share({ files: [file], title: cmName(cmV), text: 'My cat from Rain\'s World' }).catch(() => {});
-    return;
-  }
-  const href = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = href; a.download = fname; a.rel = 'noopener';
-  if (!('download' in a)) a.target = '_blank';
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(href), 60000);
-  showToast('Saved ' + fname, 2500);
-}
-function cmCopyLink() {
-  const url = location.origin + location.pathname + '?cat=' + cmCode(cmV);
-  const done = () => showToast('Link copied! Anyone who opens it sees ' + cmName(cmV) + '.', 2600);
-  const fallback = () => { const ta = document.createElement('textarea'); ta.value = url; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select(); ta.setSelectionRange(0, url.length); let ok = false; try { ok = document.execCommand('copy'); } catch (e) { /* ignore */ } ta.remove(); ok ? done() : window.prompt('Copy this link', url); };
-  if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(url).then(done, fallback); else fallback();
-}
-// cats released into the village
+// cats released into the meadows
 function spawnMade(v) {
   const look = lookFromDNA(v); if (!look) return;
-  npcs.push({ pal: look, label: dnaName(v), made: true, x: (6 + Math.random() * 12) * T, y: (9 + Math.random() * 6) * T, tx: 0, ty: 0, wait: 0.5, dir: 'down', frame: 0, ft: 0, bounds: [3 * T, 3 * T + 8, 21 * T, 17 * T], meow: 0 });
+  const b = MEADOWS[npcs.filter(n => n.made).length % 2];
+  npcs.push({ pal: look, label: dnaName(v), made: true, x: b[0] + 16 + Math.random() * (b[2] - b[0] - 32), y: b[1] + 8 + Math.random() * (b[3] - b[1] - 16), tx: 0, ty: 0, wait: 0.5, dir: 'down', frame: 0, ft: 0, bounds: b, meow: 0 });
 }
 function released() { try { return (JSON.parse(localStorage.getItem('rainworld.cats') || '[]')).filter(c => dnaInfo(c)); } catch (e) { return []; } }
 function releaseDNA(code, label) {
   let list = released().filter(c => c !== code); list.push(code); list = list.slice(-6);
-  localStorage.setItem('rainworld.cats', JSON.stringify(list));
+  try { localStorage.setItem('rainworld.cats', JSON.stringify(list)); } catch (e) { /* private mode */ }
   for (let i = npcs.length - 1; i >= 0; i--) if (npcs[i].made) npcs.splice(i, 1);
   list.forEach(c => spawnMade(c));
-  showToast((label || dnaName(code)) + ' is now roaming the Grok Cats village! Use Places to visit.', 4000);
+  showToast((label || dnaName(code)) + ' is now roaming the meadows by the plaza!', 4000);
 }
-function cmRelease() { cmClose(); releaseDNA(cmCode(cmV)); }
-let meLook = null;
-function setMe(code) {
-  if (code) localStorage.setItem('rainworld.me', code); else localStorage.removeItem('rainworld.me');
-  meLook = code ? lookFromDNA(code) : null;
-  $('btnMe').classList.toggle('hidden', !meLook);
+
+// ======================================================================
+// ---------- WALLET: walk as your own Rain Cat ----------
+// ======================================================================
+let meLook = null;          // the look the player is drawn with (null = Rain)
+let myWallet = null;        // connected (or remembered) wallet address
+let myCat = null;           // the chosen Rain Cat {asset, dna, name, nickname, number, rarity}
+const LS = {
+  get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } },
+  set: (k, v) => { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { /* private mode */ } }
+};
+const catKey = w => 'rainworld.cat.' + w;
+const B58 = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+const isMobileUA = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+const phantom = () => (window.phantom && window.phantom.solana && window.phantom.solana.isPhantom ? window.phantom.solana : (window.solana && window.solana.isPhantom ? window.solana : null));
+const shortAddr = a => a.slice(0, 4) + '\u2026' + a.slice(-4);
+const roomsApi = () => String((window.RAINCATS_CONFIG || {}).rooms || ROOMS_URL).replace(/\/$/, '');
+const TRAIT_MAP = { fur: 'Fur', belly: 'Belly', eyes: 'Eyes', collar: 'Collar', pattern: 'Pattern', ears: 'Ear Tips', acc: 'On Top', face: 'Face', bg: 'Backdrop' };
+function catDNA(c) { // the DNA attribute, or rebuilt from the labelled traits
+  if (c.dna && dnaInfo(c.dna)) return c.dna;
+  const at = {}; (c.traits || []).forEach(t => at[t.trait] = t.value);
+  const v = { title: 0, first: 0, last: 0 };
+  for (const [k, label] of Object.entries(TRAIT_MAP)) { const i = CM[k].findIndex(o => o.n === at[label]); if (i < 0) return null; v[k] = i; }
+  return cmCode(v);
 }
-function cmPlayAs() { setMe(cmCode(cmV)); cmClose(); showToast('You are playing as ' + cmName(cmV) + '. Tap RAIN at the top to turn back into Rain.', 4000); }
-$('cmClose').addEventListener('click', cmClose);
-$('cmRandom').addEventListener('click', cmRandomize);
-$('cmDownload').addEventListener('click', cmDownload);
-$('cmCopy').addEventListener('click', cmCopyLink);
-$('cmRelease').addEventListener('click', cmRelease);
-$('cmPlay').addEventListener('click', cmPlayAs);
-$('cmMint').addEventListener('click', () => { cmClose(); rcOpen('mint'); });
-$('cmBack').addEventListener('click', () => { setMe(null); cmRender(); showToast('Back to Rain!', 1800); });
-$('btnMe').addEventListener('click', () => { setMe(null); showToast('Back to Rain!', 1800); });
-cmBuildUI();
-released().forEach(c => spawnMade(cmParse(c)));
-setMe(localStorage.getItem('rainworld.me'));
+const catLabel = c => (c.nickname ? c.nickname + ' (' + (c.number ? '#' + c.number : c.name) + ')' : c.name || 'your Rain Cat');
+
+// Read-only lookup through Rooms (public chain data, cached briefly)
+const ownedCache = new Map();
+function roomsInfo(wallet, fresh) {
+  const hit = ownedCache.get(wallet);
+  if (hit && !fresh && Date.now() - hit.at < 30000) return hit.p;
+  const p = fetch(roomsApi() + '/api/raincats/owned?wallet=' + encodeURIComponent(wallet), { headers: { accept: 'application/json' } })
+    .then(r => r.json().catch(() => ({})).then(j => { if (!r.ok) throw new Error(j.error || 'HTTP ' + r.status); return j; }))
+    .then(j => ({ wallet, verified: !!j.verified, cats: (j.cats || []).map(c => Object.assign({}, c, { dna: catDNA(c) })) }));
+  ownedCache.set(wallet, { at: Date.now(), p });
+  p.catch(() => { if (ownedCache.get(wallet) && ownedCache.get(wallet).p === p) ownedCache.delete(wallet); });
+  return p;
+}
+
+function applyLook(cat) {
+  myCat = cat || null;
+  meLook = cat && cat.dna ? lookFromDNA(cat.dna) : null;
+  updateWalletBtn();
+}
+// Session-only look (old ?cat= links, the mint panel's "Play as" before ownership is known)
+function setMe(code) { applyLook(code ? { dna: code, name: dnaName(code) } : null); }
+function chooseCat(cat, wallet) {
+  wallet = wallet || myWallet;
+  if (wallet && wallet !== myWallet) setWallet(wallet, true);
+  if (wallet) LS.set(catKey(wallet), cat ? cat.asset : null);
+  applyLook(cat);
+  showToast(cat ? "You're walking as " + catLabel(cat) + '!' : 'Back to Rain!', cat ? 3500 : 1800);
+  if (!picker.classList.contains('hidden')) renderPicker();
+}
+// On load: only wear the saved cat if this wallet still owns it; otherwise stay Rain.
+async function restoreCat(wallet) {
+  const asset = LS.get(catKey(wallet)); if (!asset) return;
+  try {
+    const info = await roomsInfo(wallet, true);
+    if (wallet !== myWallet) return;
+    if (myCat && !myCat.asset) return; // visiting as a ?cat= link for this session
+    const cat = info.cats.find(c => c.asset === asset && c.dna);
+    if (cat) applyLook(cat);
+    else { LS.set(catKey(wallet), null); if (myCat) applyLook(null); showToast('Your saved Rain Cat is no longer in this wallet, so you are Rain again.', 4000); }
+  } catch (e) { /* offline: stay Rain until ownership can be checked */ }
+}
+function setWallet(w, keepLook) {
+  if (w === myWallet) return;
+  const prev = myWallet; myWallet = w; LS.set('rainworld.wallet', w);
+  // switching wallets drops the old wallet's cat; a session-only look (?cat= link) stays
+  if (!keepLook && (prev || (myCat && myCat.asset))) applyLook(null);
+  updateWalletBtn();
+  if (w && !keepLook) restoreCat(w);
+}
+async function connectWallet() {
+  const p = phantom();
+  if (!p) {
+    if (isMobileUA) { location.href = 'https://phantom.app/ul/browse/' + encodeURIComponent(location.href.split('#')[0]) + '?ref=' + encodeURIComponent(location.origin); return false; }
+    window.open('https://phantom.com/download', '_blank', 'noopener'); pkNote('Install the Phantom extension, then reload this page.'); return false;
+  }
+  try { const r = await p.connect(); setWallet(String((r && r.publicKey) || p.publicKey)); return true; }
+  catch (e) { pkNote('Wallet connection was cancelled.'); return false; }
+}
+async function disconnectWallet() {
+  const p = phantom(); try { if (p) await p.disconnect(); } catch (e) { /* ignore */ }
+  myWallet = null; LS.set('rainworld.wallet', null); applyLook(null); renderPicker();
+}
+
+// HUD button
+const btnWallet = $('btnWallet'), btnWalletCat = $('btnWalletCat').getContext('2d');
+btnWalletCat.imageSmoothingEnabled = false;
+function updateWalletBtn() {
+  const label = !myWallet ? (phantom() || !isMobileUA ? 'CONNECT WALLET' : 'OPEN IN PHANTOM') : myCat && myCat.number ? 'MY CAT #' + myCat.number : shortAddr(myWallet);
+  btnWallet.querySelector('span').textContent = label;
+  btnWallet.classList.toggle('on', !!myWallet);
+  btnWallet.setAttribute('aria-label', myWallet ? 'Choose your cat' : 'Connect wallet');
+  btnWalletCat.clearRect(0, 0, 16, 16);
+  if (myWallet) btnWalletCat.drawImage(catSprite(meLook || RAIN, 'down', 0), 0, 0);
+}
+btnWallet.addEventListener('click', () => openPicker(true));
+
+// Picker panel
+const picker = $('picker');
+function pkNote(msg) { $('pkNote').textContent = msg || ''; }
+function closePicker() { picker.classList.add('hidden'); document.body.classList.remove('pk'); }
+function openPicker(autoConnect) {
+  closeDialog(false); closePlaces(); keys.clear(); padDirs.clear(); tapTarget = null; hideToast();
+  picker.classList.remove('hidden'); document.body.classList.add('pk');
+  renderPicker();
+  if (autoConnect && !myWallet && phantom()) connectWallet().then(ok => ok && renderPicker());
+}
+function goTo(id) {
+  const t = targets.find(x => x.id === id); if (!t) return;
+  closeDialog(false); closePlaces(); closePicker();
+  player.x = t.x; player.y = t.y; player.dir = 'up'; tapTarget = null; dismissed.delete(t.id); updateCam();
+}
+let pkSeq = 0;
+function renderPicker() {
+  const seq = ++pkSeq, list = $('pkList'), acts = $('pkActs');
+  list.innerHTML = ''; acts.innerHTML = '';
+  $('pkAddr').textContent = myWallet ? 'Wallet: ' + shortAddr(myWallet) : (phantom() || !isMobileUA ? 'Wallet not connected' : 'On iPhone, open Rain\'s World in the Phantom app');
+  const cb = $('pkConnect'); cb.textContent = myWallet ? 'Disconnect' : (phantom() || !isMobileUA ? 'Connect Phantom' : 'Open in Phantom');
+  if (!myWallet) { pkNote('Connect your Phantom wallet to pick one of your Rain Cats. Your cat becomes the one walking around my world.'); return; }
+  pkNote('Looking for your Rain Cats\u2026');
+  const wallet = myWallet;
+  roomsInfo(wallet, true).then(info => {
+    if (seq !== pkSeq) return;
+    const cats = info.cats.filter(c => c.dna);
+    if (info.verified) { const a = document.createElement('a'); a.className = 'verified'; a.href = ROOMS_URL + '/mint'; a.target = '_blank'; a.rel = 'noopener'; a.textContent = VERIFIED_LABEL; acts.appendChild(a); }
+    if (!cats.length) {
+      pkNote(info.cats.length ? 'Your Rain Cats are still syncing. Try again in a minute.' : 'No Rain Cats in this wallet yet. Mint a mystery cat at the Rain Cats Mint, then come back and walk as it!');
+      const b = document.createElement('button'); b.className = 'go'; b.textContent = 'Go to the Mint building'; b.addEventListener('click', () => goTo('mint')); acts.prepend(b);
+      return;
+    }
+    pkNote('You own ' + cats.length + ' Rain Cat' + (cats.length > 1 ? 's' : '') + '. Pick the one you want to walk around as.');
+    cats.forEach(c => {
+      const card = document.createElement('div'); card.className = 'rcCard pkCard'; card.dataset.asset = c.asset;
+      const pic = document.createElement('canvas'); pic.width = 32; pic.height = 32; renderPortrait(pic.getContext('2d'), c.dna, 0.3);
+      if (c.image) { const im = new Image(); im.alt = c.name || 'Rain Cat'; im.decoding = 'async'; im.onerror = () => im.replaceWith(pic); im.src = c.image; card.appendChild(im); } else card.appendChild(pic);
+      const nm = document.createElement('div'); nm.className = 'pkName'; nm.textContent = c.name || 'Rain Cat'; card.appendChild(nm);
+      if (c.nickname) { const nn = document.createElement('div'); nn.className = 'pkNick'; nn.textContent = c.nickname; card.appendChild(nn); }
+      const rr = document.createElement('span'); rr.className = 'pkRar rar-' + String(c.rarity || 'common').toLowerCase().replace(/\s+/g, '-'); rr.textContent = String(c.rarity || '').toUpperCase(); card.appendChild(rr);
+      if (c.listed) { const ls = document.createElement('div'); ls.className = 'pkListed'; ls.textContent = 'Listed on Tensor'; card.appendChild(ls); }
+      const on = myCat && myCat.asset === c.asset;
+      const b = document.createElement('button'); b.textContent = on ? '\u2713 Walking' : 'Walk as this cat'; b.className = on ? 'on' : ''; b.addEventListener('click', () => { chooseCat(c, wallet); closePicker(); });
+      card.appendChild(b); list.appendChild(card);
+    });
+    if (myCat && myCat.asset) { const b = document.createElement('button'); b.className = 'alt'; b.textContent = 'Be Rain again'; b.addEventListener('click', () => chooseCat(null, wallet)); acts.prepend(b); }
+  }, e => {
+    if (seq !== pkSeq) return;
+    pkNote('Could not load your Rain Cats right now. Check your connection and try again.');
+    const b = document.createElement('button'); b.textContent = 'Retry'; b.addEventListener('click', renderPicker); acts.appendChild(b);
+  });
+}
+$('pkConnect').addEventListener('click', () => myWallet ? disconnectWallet() : connectWallet().then(ok => ok && renderPicker()));
+$('pickerClose').addEventListener('click', closePicker);
+
+(function bootWallet() {
+  LS.set('rainworld.me', null); // the old Cat Maker "play as" choice (Cat Maker is gone)
+  updateWalletBtn();
+  const saved = LS.get('rainworld.wallet');
+  const fallback = () => { if (saved && B58.test(saved)) setWallet(saved); };
+  const p = phantom();
+  if (p) {
+    try { if (p.on) p.on('accountChanged', pk => { if (pk && myWallet) setWallet(String(pk)); }); } catch (e) { /* older wallets */ }
+    p.connect({ onlyIfTrusted: true }).then(r => setWallet(String((r && r.publicKey) || p.publicKey)), fallback);
+  } else fallback();
+})();
+released().forEach(c => spawnMade(c));
 
 // Rain Cats mint panel: the Solana bundle is loaded only when someone opens it
 let rcLoading = null;
@@ -1207,11 +1064,18 @@ function rcOpen(which) {
 
 // ---------- boot ----------
 resize(); buildPlaces(); updateCam();
-const sharedCat = cmParse(new URLSearchParams(location.search).get('cat'));
-const mintParam = new URLSearchParams(location.search).get('mint');
-if (mintParam !== null) rcOpen(mintParam === 'mine' ? 'mine' : 'mint'); else if (sharedCat) cmOpen(sharedCat); else showToast("Hi, I'm Rain! This is my world, full of the things Christian and I built. Walk up to any place to learn about it." + (isTouch ? ' Use the pad or tap to walk.' : ' Arrows/WASD to walk, E to talk, M for places.'), 7000);
+const params = new URLSearchParams(location.search);
+const sharedCat = cmParse(params.get('cat'));
+const mintParam = params.get('mint');
+if (sharedCat) { // old Cat Maker share links: you visit as that cat (not saved)
+  setMe(cmCode(sharedCat));
+  showToast("You're visiting as " + cmName(sharedCat) + '. Connect your wallet to walk as your own Rain Cat.', 6000);
+}
+if (mintParam !== null) { goTo('mint'); closeDialog(false); rcOpen(mintParam === 'mine' ? 'mine' : 'mint'); }
+else if (!sharedCat) showToast("Hi, I'm Rain! Visit Rooms HQ or the Rain Cats Mint, or connect your wallet to walk as your own Rain Cat." + (isTouch ? ' Use the pad or tap to walk.' : ' Arrows/WASD to walk, E to talk, M for places.'), 7000);
 // debug/test hooks (used by the screenshot script)
 window.rainWorld = { player, targets, nft: { SR, CM, CM_KEYS, cmName, cmRarity, cmCode, cmParse, dnaInfo, png32: dna => { const [p, px] = mk(32, 32); renderPortrait(px, dna, 0.3); return p.toDataURL('image/png'); } },
-  world: { rcOpen, releaseDNA, setMe, lookFromDNA, dnaName, renderPortrait, showToast, blip, closeDialog, closePlaces, keys, padDirs, mk, get time() { return time; } }, catMaker: { open: cmOpen, close: cmClose, randomize: cmRandomize, code: () => cmCode(cmV), rarity: () => cmRarity(cmV), name: () => cmName(cmV), dataURL: () => cmDataURL(cmV), locks: cmLocks }, open: id => { const t = targets.find(x => x.id === id); player.x = t.x; player.y = t.y; dismissed.clear(); }, setTime: t => { time = t; } };
+  world: { rcOpen, releaseDNA, setMe, chooseCat, setWallet, roomsInfo, openPicker, closePicker, goTo, lookFromDNA, dnaName, renderPortrait, showToast, blip, closeDialog, closePlaces, keys, padDirs, mk, get time() { return time; }, get wallet() { return myWallet; }, get cat() { return myCat; }, get look() { return meLook; } },
+  open: id => { const t = targets.find(x => x.id === id); player.x = t.x; player.y = t.y; dismissed.clear(); }, setTime: t => { time = t; } };
 requestAnimationFrame(loop);
 })();

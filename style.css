@@ -48,49 +48,14 @@ body.touch #dialog video{max-height:24vh}
 body.touch #dlgMedia img{width:64px;height:64px}
 /* ---------- Cat Maker ---------- */
 #toast{z-index:20}
-#btnMe{width:auto!important;padding:0 8px;font-family:"PS2P",monospace!important;font-size:8px!important;background:var(--mint)!important;color:#0d1020}
 #dlgLinks button.act{font-size:9px;color:#0d1020;background:var(--pink);border:3px solid var(--ink);box-shadow:3px 3px 0 #000;padding:9px 10px}
-#catmaker{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(96vw,780px);max-height:92vh;max-height:92dvh;overflow:auto;padding:16px;z-index:12;-webkit-overflow-scrolling:touch;touch-action:pan-y}
-#catmaker h2{font-size:14px;color:var(--pink);margin:0 0 14px;font-weight:normal;text-shadow:2px 2px 0 #000}
-#cmClose{position:absolute;top:6px;right:8px;background:none;border:0;font-size:24px;font-family:system-ui,sans-serif;padding:4px 10px}
-#cmGrid{display:grid;grid-template-columns:290px 1fr;gap:18px}
-#cmStage{position:relative;width:min(100%,256px);aspect-ratio:1/1;margin:0 auto;border:4px solid var(--ink);box-shadow:4px 4px 0 #000;background:repeating-conic-gradient(#20263d 0 25%,#171c2e 0 50%) 50%/16px 16px}
-#cmPreview{width:100%;height:100%;display:block;image-rendering:pixelated;image-rendering:crisp-edges}
-#cmStage.shake{animation:shake .46s steps(6)}
 @keyframes shake{0%{transform:none}20%{transform:translate(-5px,2px) rotate(-3deg)}40%{transform:translate(5px,-2px) rotate(3deg)}60%{transform:translate(-3px,0) rotate(-2deg)}80%{transform:translate(3px,1px) rotate(2deg)}100%{transform:none}}
-#cmDice{position:absolute;right:-12px;top:-16px;font-size:28px;font-family:system-ui,sans-serif;filter:drop-shadow(2px 2px 0 #000)}
-#cmDice.roll{animation:roll .46s steps(8)}
 @keyframes roll{to{transform:rotate(720deg)}}
-#cmName{text-align:center;font-size:10px;line-height:1.6;margin:14px 0 6px}
-#cmRarityWrap{text-align:center;margin-bottom:12px}
-#cmRarity{display:inline-block;font-size:8px;padding:5px 8px;border:2px solid currentColor}
 .rar-common{color:#cfd8ee}.rar-rare{color:#6bc6ff}.rar-epic{color:#b78bff}
 .rar-legendary{color:#ffd66b;animation:leg 1s steps(2) infinite}
 @keyframes leg{50%{box-shadow:0 0 0 2px #ffd66b,0 0 12px #ffd66b}}
-#cmRandom{display:block;width:100%;font-size:14px;padding:15px 10px;background:var(--pink);color:#0d1020;border:4px solid var(--ink);box-shadow:4px 4px 0 #000;font-family:"PS2P",monospace}
-#cmRandom:active,#cmActions button:active,.trait button:active{transform:translate(2px,2px);box-shadow:1px 1px 0 #000}
-#cmActions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:14px}
-#cmActions button{font-size:8px;line-height:1.5;padding:10px 6px;min-height:44px;background:var(--mint);color:#0d1020;border:3px solid var(--ink);box-shadow:3px 3px 0 #000}
-#cmActions button.alt{background:var(--ink)}
-.trait{display:grid;grid-template-columns:74px 36px 1fr 36px 40px;align-items:center;gap:6px;margin-bottom:7px;background:#0b0e1c;border:3px solid var(--line);padding:4px}
-.trait.locked{border-color:var(--mint)}
-.trait .tl{font-size:7px;color:#8a95b8;padding-left:4px}
-.trait .tv{font-size:8px;line-height:1.5;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px;min-width:0}
-.trait .tv b{font-weight:normal;overflow:hidden;text-overflow:ellipsis}
-.trait .tv i{width:10px;height:10px;border:2px solid var(--ink);flex:none}
-.trait button{height:36px;background:var(--panel);border:2px solid var(--ink);font-size:12px;font-family:system-ui,sans-serif;padding:0}
-.trait .lock.on{background:var(--mint)}
-#cmNote{font-size:7px;line-height:1.8;color:#8a95b8;margin-top:10px;font-family:"PS2P",monospace}
-body.cm #pad,body.cm #btnA,body.cm #prompt,body.cm #dialog{display:none!important}
-@media (max-width:680px){
-  #catmaker{left:2vw;right:2vw;width:auto;top:calc(env(safe-area-inset-top) + 8px);transform:none;max-height:calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 16px);padding:14px 12px}
-  #cmGrid{grid-template-columns:1fr;gap:14px}
-  #cmStage{width:min(62vw,240px)}
-  .trait{grid-template-columns:64px 36px 1fr 36px 40px}
-}
 
 /* ---- Rain Cats mint ---- */
-#cmActions .mintcta{grid-column:1/-1;background:var(--yellow,#ffd66b)}
 #rcPanel{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(96vw,520px);max-height:92vh;max-height:92dvh;overflow:auto;padding:16px;z-index:13;-webkit-overflow-scrolling:touch;touch-action:pan-y}
 #rcPanel h2{font-size:14px;color:var(--pink);margin:0 0 12px;font-weight:normal;text-shadow:2px 2px 0 #000}
 .rcnet{font-size:7px;vertical-align:middle;padding:3px 5px;border:2px solid var(--yellow,#ffd66b);color:var(--yellow,#ffd66b);margin-left:6px}
@@ -132,5 +97,34 @@ body.cm #pad,body.cm #btnA,body.cm #prompt,body.cm #dialog{display:none!importan
 .rcCard canvas{width:100%;aspect-ratio:1/1;image-rendering:pixelated;display:block;margin-bottom:6px}
 .rcCard .rcActs{grid-template-columns:1fr;gap:6px;margin:6px 0 0}
 .rcCard .rcActs button{min-height:36px;padding:7px 4px;font-size:7px}
-body.rc #pad,body.rc #btnA,body.rc #prompt,body.rc #dialog,body.rc #catmaker{display:none!important}
+body.rc #pad,body.rc #btnA,body.rc #prompt,body.rc #dialog{display:none!important}
 @media (max-width:680px){#rcPanel{left:2vw;right:2vw;width:auto;top:calc(env(safe-area-inset-top) + 8px);transform:none;max-height:calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 16px);padding:14px 12px}}
+
+/* wallet button + cat picker */
+#buttons #btnWallet{width:auto;padding:0 10px 0 8px;display:flex;align-items:center;gap:6px;font-family:"PS2P",monospace;font-size:8px;background:#ab9ff2;color:#0d1020;white-space:nowrap}
+#btnWallet canvas{width:16px;height:16px;image-rendering:pixelated;display:none}
+#btnWallet.on{background:var(--mint)}
+#btnWallet.on canvas{display:block}
+#picker{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(96vw,560px);max-height:92vh;max-height:92dvh;overflow:auto;padding:16px;z-index:13;-webkit-overflow-scrolling:touch;touch-action:pan-y}
+#picker h2{font-size:14px;color:var(--mint);margin:0 0 12px;font-weight:normal;text-shadow:2px 2px 0 #000}
+#pickerClose{position:absolute;top:6px;right:8px;background:none;border:0;font-size:22px;color:var(--ink);font-family:system-ui,sans-serif;padding:4px 8px}
+#pkWallet{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:8px;margin-bottom:10px;flex-wrap:wrap}
+#pkWallet button{font-size:8px;padding:9px 8px;min-height:40px;background:#ab9ff2;color:#0d1020;border:3px solid var(--ink);box-shadow:3px 3px 0 #000}
+#pkNote{font-size:8px;line-height:1.8;color:#cfd8ee;margin-bottom:10px}
+#pkList{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.pkCard img,.pkCard canvas{width:100%;aspect-ratio:1/1;image-rendering:pixelated;display:block;margin-bottom:6px;background:#0d1020}
+.pkCard .pkName{font-size:8px}
+.pkCard .pkNick{font-size:7px;color:#cfd8ee}
+.pkCard .pkRar{display:inline-block;margin:4px 0;font-size:7px;padding:2px 4px}
+.pkCard .pkListed{font-size:6px;color:#ffd66b;margin-bottom:2px}
+.pkCard button{display:block;width:100%;margin-top:6px;min-height:40px;font-size:7px;line-height:1.5;padding:8px 4px;background:var(--mint);color:#0d1020;border:3px solid var(--ink);box-shadow:3px 3px 0 #000}
+.pkCard button.on{background:var(--ink)}
+#pkActs{display:grid;gap:8px;margin-top:12px}
+#pkActs button,#pkActs a{display:block;text-align:center;font-size:8px;line-height:1.6;padding:12px 8px;min-height:44px;background:var(--pink);color:#0d1020;border:3px solid var(--ink);box-shadow:3px 3px 0 #000;text-decoration:none}
+#pkActs button.alt{background:var(--ink)}
+#pkActs button:active,.pkCard button:active,#pkWallet button:active{transform:translate(2px,2px);box-shadow:1px 1px 0 #000}
+a.verified,#dlgLinks a.verified,#pkActs a.verified{background:#1d9bf0!important;color:#fff!important}
+#rcVerified{display:block;text-align:center;font-size:8px;line-height:1.6;padding:12px 8px;margin:0 0 10px;border:3px solid var(--ink);box-shadow:3px 3px 0 #000;text-decoration:none}
+#dlgLinks button.act.alt{background:var(--ink)}
+body.pk #pad,body.pk #btnA,body.pk #prompt,body.pk #dialog{display:none!important}
+@media (max-width:430px){#title{display:none}#buttons{gap:6px}#buttons button{width:34px;height:34px}#buttons #btnWallet{padding:0 6px;font-size:7px}}

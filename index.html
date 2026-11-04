@@ -8,7 +8,7 @@
 <title>Rain's World</title>
 <link rel="icon" href="assets/rooms-icon.png">
 <link rel="apple-touch-icon" href="assets/rooms-icon.png">
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=4">
 </head>
 <body>
 <canvas id="game" aria-label="Rain's World game"></canvas>
@@ -16,7 +16,7 @@
 <div id="hud">
   <div id="title">RAIN'S WORLD</div>
   <div id="buttons">
-    <button id="btnMe" class="hidden" title="Turn back into Rain" aria-label="Back to Rain">RAIN</button>
+    <button id="btnWallet" title="Connect wallet and choose your cat (C)" aria-label="Connect wallet"><canvas id="btnWalletCat" width="16" height="16" aria-hidden="true"></canvas><span>CONNECT WALLET</span></button>
     <button id="btnPlaces" title="Places (M)" aria-label="Places">&#9776;</button>
     <button id="btnRain" title="Rain on/off (R)" aria-label="Toggle rain">&#9730;</button>
     <button id="btnSound" title="Music on/off (N)" aria-label="Toggle music">&#9835;<s></s></button>
@@ -47,29 +47,13 @@
   <div id="placesList"></div>
 </div>
 
-<div id="catmaker" class="pixel-box hidden" role="dialog" aria-label="Cat Maker">
-  <button id="cmClose" aria-label="Close">&times;</button>
-  <h2>CAT MAKER</h2>
-  <div id="cmGrid">
-    <div id="cmLeft">
-      <div id="cmStage"><canvas id="cmPreview" width="32" height="32" aria-label="Your cat"></canvas><div id="cmDice" aria-hidden="true">&#127922;</div></div>
-      <div id="cmName"></div>
-      <div id="cmRarityWrap"><span id="cmRarity"></span></div>
-      <button id="cmRandom">&#127922; RANDOMIZE</button>
-      <div id="cmActions">
-        <button id="cmDownload">Download PNG</button>
-        <button id="cmCopy" class="alt">Copy link</button>
-        <button id="cmRelease" class="alt">Let it roam the village</button>
-        <button id="cmPlay" class="alt">Play as this cat</button>
-        <button id="cmBack" class="alt hidden">Back to Rain</button>
-        <button id="cmMint" class="mintcta">&#127873; Mint a mystery Rain Cat &middot; 0.04 SOL</button>
-      </div>
-    </div>
-    <div id="cmRight">
-      <div id="cmTraits"></div>
-      <div id="cmNote">&#128275; Lock the traits you like, then Randomize re-rolls the rest. Arrows step through each trait.</div>
-    </div>
-  </div>
+<div id="picker" class="pixel-box hidden" role="dialog" aria-label="Choose your cat">
+  <button id="pickerClose" aria-label="Close">&times;</button>
+  <h2>CHOOSE YOUR CAT</h2>
+  <div id="pkWallet"><span id="pkAddr">Wallet not connected</span><button id="pkConnect">Connect Phantom</button></div>
+  <div id="pkNote" aria-live="polite"></div>
+  <div id="pkList"></div>
+  <div id="pkActs"></div>
 </div>
 
 <div id="rcPanel" class="pixel-box hidden" role="dialog" aria-label="Rain Cats mint">
@@ -84,15 +68,16 @@
       <div id="rcRName"></div><div id="rcRRarityWrap"><span id="rcRRarity"></span></div>
       <div id="rcRTraits"></div>
       <div id="rcRLinks"></div>
-      <div class="rcActs"><button id="rcPlay">Play as this cat</button><button id="rcRoam" class="alt">Let it roam the village</button><button id="rcAgain" class="alt">Mint another</button></div>
+      <div class="rcActs"><button id="rcPlay">Play as this cat</button><button id="rcRoam" class="alt">Let it roam</button><button id="rcAgain" class="alt">Mint another</button></div>
     </div>
+    <a id="rcVerified" class="verified hidden" href="https://www.intherooms.xyz/mint" target="_blank" rel="noopener">Verified &#10003;? Claim your free cat at intherooms.xyz/mint</a>
     <button id="rcMint">&#127873; MINT A MYSTERY CAT &middot; 0.04 SOL</button>
     <div id="rcStatus" aria-live="polite"></div>
     <div id="rcNote">1,000 pixel cats with 9 one-of-one Super Rares. You see your cat only after you pay. Price is 0.04 SOL plus about 0.002 SOL network rent and fees for the NFT account.</div>
   </div>
   <div id="rcMineView" class="hidden">
     <div id="rcMineList"></div>
-    <div id="rcMineNote">Pick one of your Rain Cats to play as it or let it roam the village.</div>
+    <div id="rcMineNote">Pick one of your Rain Cats to walk as it or let it roam the meadows.</div>
   </div>
 </div>
 
@@ -104,7 +89,7 @@
 </div>
 <button id="btnA" aria-label="Talk">A</button>
 
-<script src="game.js"></script>
-<script src="raincats/config.js"></script>
+<script src="raincats/config.js?v=4"></script>
+<script src="game.js?v=4"></script>
 </body>
 </html>

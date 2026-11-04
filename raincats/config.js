@@ -1,6 +1,6 @@
 // Rain Cats mint config. Live on Solana mainnet-beta (see README and tools/nft/MAINNET_LAUNCH.md).
 window.RAINCATS_CONFIG = {
-  version: 3,
+  version: 4,
   status: 'live',
   cluster: 'mainnet-beta',
   explorerCluster: 'mainnet-beta',
@@ -14,5 +14,6 @@ window.RAINCATS_CONFIG = {
   freeMintLimitId: 1,        // free group mintLimit guard: 1 free mint per allowlisted wallet
   freeMintLimit: 1,
   price: 0.04,
-  supply: 1000
+  supply: 1000,
+  rooms: 'https://www.intherooms.xyz' // read-only Rooms API: /api/raincats/owned?wallet= (owned cats + check mark)
 };
