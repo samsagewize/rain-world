@@ -17,8 +17,10 @@ const mock = pk => { const key = { toString: () => pk, toBase58: () => pk }; win
 let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) fails++; };
 async function ctxFor(b, opts, pk, owned) {
   const ctx = await b.newContext(opts); if (pk) await ctx.addInitScript(mock, pk);
-  if (!LIVE) await ctx.route('**/api/raincats/owned**', r => { const w = new URL(r.request().url()).searchParams.get('wallet');
-    const body = w === CH ? (owned ? owned() : fx) : { wallet: w, verified: false, cats: [] };
+  await ctx.route('**/api/raincats/owned**', r => { const w = new URL(r.request().url()).searchParams.get('wallet');
+    const o = w === CH && owned ? owned() : null;
+    if (LIVE && !o) return r.continue(); // live: real Rooms API unless a test overrides the answer
+    const body = o || (w === CH ? fx : { wallet: w, verified: false, cats: [] });
     r.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(body) }); });
   await ctx.route('https://phantom.app/**', r => r.fulfill({ status: 200, body: 'phantom' }));
   return ctx;
@@ -49,7 +51,7 @@ const hideToast = p => p.evaluate(() => { const t = document.getElementById('toa
     ok(rl.some(h => /intherooms\.xyz/.test(h)), 'Rooms HQ links to intherooms.xyz');
     ok(!p.errs.length, 'no console errors (desktop world) ' + p.errs.join(';')); await ctx.close(); }
   // 2. Desktop: connect -> picker -> walk as #0373, persist, re-verify, fallback
-  { let owned = null; const ctx = await ctxFor(chromium, desk, CH, () => owned || fx); const p = await page(ctx, '/');
+  { let owned = null; const ctx = await ctxFor(chromium, desk, CH, () => owned); const p = await page(ctx, '/');
     await p.click('#btnWallet'); await p.waitForSelector('.pkCard', { timeout: 30000 });
     const card = await p.$eval('.pkCard', c => c.innerText.replace(/\n/g, ' '));
     ok(/#0373/.test(card) && /RARE/.test(card), 'picker shows ' + card);
@@ -82,7 +84,7 @@ const hideToast = p => p.evaluate(() => { const t = document.getElementById('toa
     ok((await p.evaluate(() => window.__signs)) === 0, 'nothing signed');
     ok(!p.errs.length, 'no console errors (desktop wallet) ' + p.errs.join(';')); await ctx.close(); }
   // 3. ?mint deep link (+ verified claim button in mint panel), ?cat= legacy link
-  { const ctx = await ctxFor(chromium, desk, CH, () => ({ ...fx, verified: true })); const p = await page(ctx, '/?mint');
+  { const ctx = await ctxFor(chromium, desk, CH, () => LIVE ? null : ({ ...fx, verified: true })); const p = await page(ctx, '/?mint');
     await p.waitForSelector('#rcPanel:not(.hidden)', { timeout: 20000 });
     ok(true, '?mint opens the mint panel'); await p.click('#rcConnect').catch(() => {});
     await p.waitForSelector('#rcVerified:not(.hidden)', { timeout: 20000 }).then(() => ok(true, 'mint panel shows Verified claim link'), () => ok(false, 'mint panel verified link'));
