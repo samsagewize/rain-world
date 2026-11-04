@@ -15,5 +15,5 @@ window.RAINCATS_CONFIG = {
   freeMintLimit: 1,
   price: 0.04,
   supply: 1000,
-  rooms: 'https://www.intherooms.xyz' // read-only Rooms API: /api/raincats/owned?wallet= (owned cats + check mark)
+  rooms: /^\/rainworld(\/|$)/.test(location.pathname) ? location.origin : 'https://www.intherooms.xyz' // read-only Rooms API: /api/raincats/owned?wallet= (owned cats + check mark)
 };

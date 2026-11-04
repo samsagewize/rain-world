@@ -2,13 +2,15 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<script>/* Served inside Rooms at intherooms.xyz/rainworld: resolve relative assets under that path. */
+if(/^\/rainworld(\/|$)/.test(location.pathname)){document.write('<base href="/rainworld/">');document.documentElement.classList.add('in-rooms')}</script>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#0d1020">
 <meta name="description" content="Rain's World: a little pixel world where Rain the cat keeps everything we built together.">
 <title>Rain's World</title>
 <link rel="icon" href="assets/rooms-icon.png">
 <link rel="apple-touch-icon" href="assets/rooms-icon.png">
-<link rel="stylesheet" href="style.css?v=4">
+<link rel="stylesheet" href="style.css?v=5">
 </head>
 <body>
 <canvas id="game" aria-label="Rain's World game"></canvas>
@@ -16,6 +18,7 @@
 <div id="hud">
   <div id="title">RAIN'S WORLD</div>
   <div id="buttons">
+    <a id="btnRooms" href="/rooms" aria-label="Back to Rooms">&lsaquo; ROOMS</a>
     <button id="btnWallet" title="Connect wallet and choose your cat (C)" aria-label="Connect wallet"><canvas id="btnWalletCat" width="16" height="16" aria-hidden="true"></canvas><span>CONNECT WALLET</span></button>
     <button id="btnPlaces" title="Places (M)" aria-label="Places">&#9776;</button>
     <button id="btnRain" title="Rain on/off (R)" aria-label="Toggle rain">&#9730;</button>
@@ -89,7 +92,7 @@
 </div>
 <button id="btnA" aria-label="Talk">A</button>
 
-<script src="raincats/config.js?v=4"></script>
-<script src="game.js?v=4"></script>
+<script src="raincats/config.js?v=5"></script>
+<script src="game.js?v=5"></script>
 </body>
 </html>
