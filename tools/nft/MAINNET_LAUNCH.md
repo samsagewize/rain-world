@@ -44,3 +44,15 @@ Launched 2026-11-04 (America/Chicago). Metaplex Core collection + Core Candy Mac
 
 ## Reproduce / resume
 `node upload.js mainnet` (state in raincats/upload-mainnet.json, skips finished steps, funds Irys per-item price x1.2) then `NET=mainnet node deploy.js main` (records pending addresses before sending so a retry never pays CM rent twice; resumes config lines from itemsLoaded).
+
+## Verified ✓ free mint (2026-11-04)
+Every Rooms check-mark wallet (active Rooms Premium: founder or unexpired; 21 wallets at launch, all founders) gets 1 free Rain Cat on https://www.intherooms.xyz/mint.
+- New guard group `verify` (group labels max 6 bytes): `thirdPartySigner` signerKey 2yz9xm2YfRCSXrYtRsSZGHWBdCwy8Hhu1fx2xKAUjJYs + `mintLimit` id 2, limit 1. `public` and `free` unchanged; still no default guards.
+- Co-signer: Rooms route `/api/raincats/verified-mint` signs only an exact Rain Cats `verify` mint whose fee payer = minter = a wallet that has signed and is verified at that moment. The secret lives only in the Rooms Vercel Secret `RAINCATS_VERIFIED_SIGNER_SECRET` (and the 0600 box file `~/.raincats/verified-signer.json`); the signer key holds no SOL.
+- updateCandyGuard tx: 2WeCYRyfDRfueHSCwizqjJLW4dHsBaaYo39p2JtNUinVn46cuDe5SukiLRHuUpkLa6x28UkxYvVyY1SdKqRTtDMz (finalized slot 465394585). Guard account 188 -> 237 bytes.
+- Cost: 0.00025392 SOL (0.00024892 rent + 0.000005 fee). Authority 0.023881334 -> 0.023627414 SOL.
+- Script: `NET=mainnet node verified-guard.js` (preflight, prints cost) / `--send` (re-reads the guard and keeps every existing group). Local validator test: `node verified-local.mjs` (needs the Rooms repo at /workspace/rooms-rc for its co-sign code).
+- Local validator: verified free mint ok, 2nd AllowedMintLimitReached, unverified refused by the co-signer and (bypassing it) by the chain (signature verification), public 0.04 SOL and owner free still work, owner who is also verified gets both.
+- Mainnet simulations (never sent): 4Gaue verify = success (sigVerify off), public = success, free = AllowedMintLimitReached (Christian already used it); fresh unverified wallet without the co-signature = SignatureFailure, live route = 403.
+- The Rain's World in-game panel mints `free`/`public` only; verified free mints happen on intherooms.xyz/mint.
+- Rotate the co-signer: new key -> updateCandyGuard with the new signerKey (edit verified-guard.js) -> RAINCATS.verifiedSigner in Rooms -> replace the Vercel Secret.
