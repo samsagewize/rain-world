@@ -33,13 +33,21 @@ function writeMeta(imgBase) {
   }
   const key = loadOrCreate('authority');
   const irys = await (NET === 'mainnet' ? Uploader(Solana).withWallet(key.secretKey).withRpc(RPC) : Uploader(Solana).withWallet(key.secretKey).withRpc(RPC).devnet());
-  const imgBytes = dirSize(`${RC}/images`), metaBytes = 1000 * 1100, colBytes = fs.statSync(`${RC}/collection.png`).size + 1500;
-  const total = imgBytes + metaBytes + colBytes + 1000 * 2 * 1200; // + per-item header/manifest overhead
-  const price = await irys.getPrice(total);
-  console.log(JSON.stringify({ net: NET, bytes: total, priceSOL: Number(price) / 1e9 }));
+  // Irys bills every data item separately with a per-item minimum, so price each item (upper bound by largest file).
+  const imgs = fs.readdirSync(`${RC}/images`), maxImg = Math.max(...imgs.map(f => fs.statSync(`${RC}/images/${f}`).size));
+  const P = async n => BigInt((await irys.getPrice(n)).toString());
+  const parts = {
+    collection: st.collectionImage ? 0n : await P(fs.statSync(`${RC}/collection.png`).size + 1500),
+    collectionJson: st.collectionJson ? 0n : await P(1500),
+    images: st.imagesManifest ? 0n : (await P(maxImg + 1200)) * BigInt(imgs.length) + await P(imgs.length * 120),
+    metadata: st.metaManifest ? 0n : (await P(1600)) * BigInt(imgs.length) + await P(imgs.length * 120),
+  };
+  const price = Object.values(parts).reduce((a, b) => a + b, 0n);
+  console.log(JSON.stringify({ net: NET, items: imgs.length * 2 + 4, priceSOL: Number(price) / 1e9, parts: Object.fromEntries(Object.entries(parts).map(([k, v]) => [k, Number(v) / 1e9])) }));
   if (PRICE_ONLY) return;
-  const bal = await irys.getBalance(); const need = BigInt(price.toString()) * 12n / 10n;
-  if (BigInt(bal.toString()) < need) { const r = await irys.fund((need - BigInt(bal.toString())).toString()); console.log('funded irys', Number(r.quantity) / 1e9, 'SOL'); }
+  const bal = await irys.getBalance(); const need = price * 12n / 10n;
+  console.log('irys balance', Number(bal) / 1e9, 'SOL');
+  if (BigInt(bal.toString()) < need) { const r = await irys.fund((need - BigInt(bal.toString())).toString()); st.fundTx = st.fundTx || []; st.fundTx.push(r.id); save(); console.log('funded irys', Number(r.quantity) / 1e9, 'SOL', 'tx', r.id); }
   if (!st.collectionImage) { const r = await irys.uploadFile(`${RC}/collection.png`, { tags: [{ name: 'Content-Type', value: 'image/png' }] }); st.collectionImage = `${GW}/${r.id}`; save(); }
   if (!st.collectionJson) {
     const j = { name: 'Rain Cats', symbol: 'RCAT', description: "1,000 pixel cats from Rain's World, Rain's home on the web. Mint a mystery cat, then play as it or let it roam the village.", image: st.collectionImage, external_url: SITE, properties: { files: [{ uri: st.collectionImage, type: 'image/png' }], category: 'image' } };

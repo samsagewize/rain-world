@@ -5,7 +5,7 @@ import { createUmi } from '@metaplex-foundation/umi-bundle-defaults';
 import { generateSigner, publicKey, some, transactionBuilder } from '@metaplex-foundation/umi';
 import { walletAdapterIdentity } from '@metaplex-foundation/umi-signer-wallet-adapters';
 import { mplCore, fetchAsset, fetchAssetsByOwner } from '@metaplex-foundation/mpl-core';
-import { mplCandyMachine, mintV1, route, fetchCandyMachine, safeFetchAllowListProofFromSeeds, getMerkleRoot, getMerkleProof } from '@metaplex-foundation/mpl-core-candy-machine';
+import { mplCandyMachine, mintV1, route, fetchCandyMachine, safeFetchAllowListProofFromSeeds, safeFetchMintCounterFromSeeds, getMerkleRoot, getMerkleProof } from '@metaplex-foundation/mpl-core-candy-machine';
 import { setComputeUnitLimit } from '@metaplex-foundation/mpl-toolbox';
 import { Keypair, VersionedTransaction, PublicKey } from '@solana/web3.js';
 
@@ -16,6 +16,9 @@ const short = a => a.slice(0, 4) + '\u2026' + a.slice(-4);
 const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 const provider = () => (window.phantom && window.phantom.solana && window.phantom.solana.isPhantom ? window.phantom.solana : (window.solana && window.solana.isPhantom ? window.solana : null));
 const ready = () => !!(CFG.candyMachine && CFG.collection);
+const isMain = () => /^mainnet/.test(String(CFG.cluster || ''));
+const FREE_LIMIT_ID = CFG.freeMintLimitId || 1, FREE_LIMIT = CFG.freeMintLimit || 1;
+let freeUsed = null; // free mints already used by the connected allowlisted wallet (null = unknown)
 let umi = null, wallet = null, tab = 'mint', busy = false, revealed = null, boxT = 0, boxTimer = null, mode = 'idle';
 
 function makeUmi() {
@@ -25,7 +28,7 @@ function makeUmi() {
   return u;
 }
 function status(msg, err) { const s = $('rcStatus'); s.textContent = msg || ''; s.classList.toggle('err', !!err); }
-function explorer(kind, a) { return `https://explorer.solana.com/${kind}/${a}${CFG.cluster === 'mainnet' ? '' : '?cluster=' + (CFG.explorerCluster || CFG.cluster)}`; }
+function explorer(kind, a) { return `https://explorer.solana.com/${kind}/${a}${isMain() ? '' : '?cluster=' + (CFG.explorerCluster || CFG.cluster)}`; }
 
 // ---------- mystery box ----------
 const bctx = () => { const c = $('rcBox').getContext('2d'); c.imageSmoothingEnabled = false; return c; };
@@ -57,11 +60,19 @@ async function connect() {
     if (isMobile) { location.href = `https://phantom.app/ul/browse/${encodeURIComponent(location.href.split('#')[0])}?ref=${encodeURIComponent(location.origin)}`; return; }
     window.open('https://phantom.com/download', '_blank', 'noopener'); status('Install the Phantom extension, then reload this page.'); return;
   }
-  try { const r = await p.connect(); wallet = (r && r.publicKey ? r.publicKey : p.publicKey).toString(); umi = makeUmi(); render(); refresh(); if (tab === 'mine') loadMine(); }
+  try { const r = await p.connect(); wallet = (r && r.publicKey ? r.publicKey : p.publicKey).toString(); umi = makeUmi(); render(); refresh(); await checkFree(); if (tab === 'mine') loadMine(); }
   catch (e) { status('Wallet connection was cancelled.', true); }
 }
-async function disconnect() { const p = provider(); try { p && await p.disconnect(); } catch (e) { /* ignore */ } wallet = null; umi = makeUmi(); render(); }
-const isFree = () => wallet && (CFG.freeWallets || []).includes(wallet);
+async function disconnect() { const p = provider(); try { p && await p.disconnect(); } catch (e) { /* ignore */ } wallet = null; freeUsed = null; umi = makeUmi(); render(); }
+const onFreeList = () => !!wallet && (CFG.freeWallets || []).includes(wallet);
+const isFree = () => onFreeList() && freeUsed !== null && freeUsed < FREE_LIMIT;
+async function checkFree() { // reads the mintLimit counter PDA for the free group; falls back to paid after the free mint is used
+  freeUsed = null; if (!onFreeList() || !ready()) return;
+  const w = wallet;
+  try { const mc = await safeFetchMintCounterFromSeeds(umi || makeUmi(), { id: FREE_LIMIT_ID, user: publicKey(w), candyMachine: publicKey(CFG.candyMachine), candyGuard: publicKey(CFG.candyGuard) });
+    if (w === wallet) { freeUsed = mc ? Number(mc.count) : 0; render(); } }
+  catch (e) { if (w === wallet) { freeUsed = 0; render(); } }
+}
 
 // ---------- count ----------
 async function refresh() {
@@ -91,6 +102,7 @@ async function mint() {
   busy = true; mode = 'minting'; revealed = null; $('rcReveal').classList.add('hidden'); $('rcStage').classList.add('shake'); $('rcMint').disabled = true;
   try {
     umi = makeUmi();
+    if (onFreeList()) await checkFree();
     const free = isFree();
     if (!free) { const bal = Number((await umi.rpc.getBalance(publicKey(wallet))).basisPoints) / 1e9; if (bal < CFG.price + 0.005) throw new Error(`You need about ${(CFG.price + 0.005).toFixed(3)} SOL in this wallet (you have ${bal.toFixed(4)}).`); }
     status('Approve the transaction in Phantom\u2026');
@@ -100,22 +112,24 @@ async function mint() {
       const list = CFG.freeWallets, merkleRoot = getMerkleRoot(list);
       const proof = await safeFetchAllowListProofFromSeeds(umi, { merkleRoot, user: publicKey(wallet), candyMachine: cmPk, candyGuard: publicKey(CFG.candyGuard) });
       if (!proof) tx = tx.add(route(umi, { candyMachine: cmPk, guard: 'allowList', group: some('free'), routeArgs: { path: 'proof', merkleRoot, merkleProof: getMerkleProof(list, wallet) } }));
-      tx = tx.add(mintV1(umi, { candyMachine: cmPk, asset, collection: col, group: some('free'), mintArgs: { allowList: some({ merkleRoot }) } }));
+      tx = tx.add(mintV1(umi, { candyMachine: cmPk, asset, collection: col, group: some('free'), mintArgs: { allowList: some({ merkleRoot }), mintLimit: some({ id: FREE_LIMIT_ID }) } }));
     } else {
       tx = tx.add(mintV1(umi, { candyMachine: cmPk, asset, collection: col, group: some('public'), mintArgs: { solPayment: some({ destination: publicKey(CFG.treasury) }) } }));
     }
     const res = await tx.sendAndConfirm(umi, { confirm: { commitment: 'confirmed' } });
     status('Paid! Opening your mystery box\u2026');
     let a = null; for (let i = 0; i < 10 && !a; i++) { try { a = await fetchAsset(umi, asset.publicKey); } catch (e) { await new Promise(r => setTimeout(r, 800)); } }
+    remember(asset.publicKey.toString());
     if (!a) throw new Error('Minted, but the NFT is still syncing. Check My Rain Cats in a moment.');
     const j = await metaFor(a.uri); const dna = dnaFromMeta(j);
-    revealed = { asset: a.publicKey.toString(), name: a.name, meta: j, dna };
+    revealed = { asset: a.publicKey.toString(), name: a.name, meta: j, dna }; remember(revealed.asset);
+    if (free) freeUsed = (freeUsed || 0) + 1;
     reveal(revealed); refresh();
     window.dispatchEvent(new CustomEvent('raincats:minted', { detail: { asset: revealed.asset, name: a.name, dna } }));
   } catch (e) {
-    mode = 'idle';
+    mode = 'idle'; if (onFreeList()) checkFree();
     const m = String(e && e.message || e);
-    status(/rejected|cancel/i.test(m) ? 'Transaction cancelled. No SOL was spent.' : /allowed list/i.test(m) ? 'This wallet is not on the free test list.' : m.split('\n')[0].slice(0, 180), true);
+    status(/rejected|cancel/i.test(m) ? 'Transaction cancelled. No SOL was spent.' : /allowed list/i.test(m) ? 'This wallet is not on the free mint list.' : /maximum number of allowed mints|MintLimit/i.test(m) ? 'This wallet already used its free mint. Mint again for ' + CFG.price + ' SOL.' : m.split('\n')[0].slice(0, 180), true);
   } finally { busy = false; $('rcStage').classList.remove('shake'); $('rcMint').disabled = false; render(); }
 }
 function reveal(r) {
@@ -128,7 +142,7 @@ function reveal(r) {
   const L = $('rcRLinks'); L.innerHTML = '';
   const link = (t, h) => { const a = document.createElement('a'); a.href = h; a.target = '_blank'; a.rel = 'noopener'; a.textContent = t; L.appendChild(a); };
   link('Solana Explorer', explorer('address', r.asset));
-  if (CFG.cluster === 'mainnet') link('Tensor', `https://www.tensor.trade/item/${r.asset}`);
+  if (isMain()) link('Tensor', `https://www.tensor.trade/item/${r.asset}`);
   $('rcReveal').classList.remove('hidden'); $('rcMint').classList.add('hidden');
   status('Welcome home, ' + (at.Name || r.name) + '!'); W().blip && W().blip(880);
 }
@@ -139,9 +153,18 @@ async function ownedCats() {
     const r = await fetch(CFG.das, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: 'rc', method: 'searchAssets', params: { ownerAddress: wallet, grouping: ['collection', CFG.collection], page: 1, limit: 100 } }) });
     const j = await r.json(); return (j.result && j.result.items || []).map(it => ({ asset: it.id, name: it.content && it.content.metadata && it.content.metadata.name, uri: it.content && it.content.json_uri }));
   }
-  const list = await fetchAssetsByOwner(umi, publicKey(wallet), { skipDerivePlugins: true });
+  const mine = a => a.updateAuthority && a.updateAuthority.type === 'Collection' && String(a.updateAuthority.address) === CFG.collection && String(a.owner) === wallet;
+  let list;
+  try { list = await fetchAssetsByOwner(umi, publicKey(wallet), { skipDerivePlugins: true }); }
+  catch (e) { // most free mainnet RPCs block getProgramAccounts: fall back to the cats minted from this device
+    const got = []; for (const id of remembered()) { try { const a = await fetchAsset(umi, publicKey(id), { skipDerivePlugins: true }); if (mine(a)) got.push(a); } catch (x) { /* burned or moved */ } }
+    list = got;
+  }
   return list.filter(a => a.updateAuthority && a.updateAuthority.type === 'Collection' && String(a.updateAuthority.address) === CFG.collection).map(a => ({ asset: a.publicKey.toString(), name: a.name, uri: a.uri }));
 }
+const memKey = () => `raincats.mine.${CFG.cluster}.${CFG.collection}.${wallet}`;
+function remembered() { try { return JSON.parse(localStorage.getItem(memKey()) || '[]'); } catch (e) { return []; } }
+function remember(id) { try { const l = remembered(); if (!l.includes(id)) l.push(id); localStorage.setItem(memKey(), JSON.stringify(l.slice(-200))); } catch (e) { /* private mode */ } }
 async function loadMine() {
   const box = $('rcMineList'); box.innerHTML = '';
   if (!wallet) { $('rcMineNote').textContent = 'Connect Phantom to see the Rain Cats in your wallet.'; return; }
@@ -173,12 +196,12 @@ function roam(dna, label) { close(); W().releaseDNA(dna, label); }
 
 // ---------- panel ----------
 function render() {
-  $('rcNet').textContent = CFG.cluster === 'mainnet' ? 'MAINNET' : String(CFG.cluster || 'devnet').toUpperCase(); $('rcNet').classList.toggle('main', CFG.cluster === 'mainnet');
+  $('rcNet').textContent = isMain() ? 'MAINNET' : String(CFG.cluster || 'devnet').toUpperCase(); $('rcNet').classList.toggle('main', isMain());
   $('rcAddr').textContent = wallet ? 'Connected: ' + short(wallet) : (provider() || !isMobile ? 'Wallet not connected' : 'On iPhone, open this page in the Phantom app');
   $('rcConnect').textContent = wallet ? 'Disconnect' : (provider() || !isMobile ? 'Connect Phantom' : 'Open in Phantom');
   const m = $('rcMint');
   if (mode !== 'reveal') { m.classList.remove('hidden'); m.classList.toggle('free', !!isFree());
-    m.innerHTML = !wallet ? `&#127873; CONNECT TO MINT &middot; ${CFG.price} SOL` : isFree() ? '&#127873; FREE TEST MINT' : `&#127873; MINT A MYSTERY CAT &middot; ${CFG.price} SOL`; }
+    m.innerHTML = !wallet ? `&#127873; CONNECT TO MINT &middot; ${CFG.price} SOL` : isFree() ? '&#127873; FREE MINT &middot; 1 LEFT' : onFreeList() && freeUsed === null ? '&#127873; CHECKING FREE MINT\u2026' : `&#127873; MINT A MYSTERY CAT &middot; ${CFG.price} SOL`; }
   $('rcTabMint').classList.toggle('on', tab === 'mint'); $('rcTabMine').classList.toggle('on', tab === 'mine');
   $('rcMintView').classList.toggle('hidden', tab !== 'mint'); $('rcMineView').classList.toggle('hidden', tab !== 'mine');
 }
@@ -188,7 +211,7 @@ function open(which) {
   tab = which === 'mine' ? 'mine' : 'mint';
   $('rcPanel').classList.remove('hidden'); document.body.classList.add('rc');
   if (!umi) umi = makeUmi();
-  const p = provider(); if (p && !wallet) p.connect({ onlyIfTrusted: true }).then(r => { wallet = (r.publicKey || p.publicKey).toString(); umi = makeUmi(); render(); if (tab === 'mine') loadMine(); }).catch(() => {});
+  const p = provider(); if (p && !wallet) p.connect({ onlyIfTrusted: true }).then(r => { wallet = (r.publicKey || p.publicKey).toString(); umi = makeUmi(); render(); checkFree(); if (tab === 'mine') loadMine(); }).catch(() => {});
   render(); refresh(); if (tab === 'mine') loadMine();
   clearInterval(boxTimer); boxTimer = setInterval(drawBox, 90); drawBox();
 }

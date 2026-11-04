@@ -58,6 +58,8 @@ A pixel workshop with a cat-ear roof and a blinking **CAT MAKER** sign, south-ea
 
 The Cat Maker building now sells **Rain Cats**, a 1,000-cat Metaplex Core collection (symbol RCAT, 5% royalties). It is a blind mint for 0.04 SOL; the cat is revealed after you pay. Holders can play as their cats or let them roam the village.
 
+**Live on Solana mainnet** (2026-11-04): collection `NoKDyLnGYSHjfSSAwQkfxsBLzk94NXgNqEXoSg84Bvi`, Candy Machine `DM8HhCKYCXESv1UHB5W31mSr9MF9WncL3gd6DMbAgwtJ`, Candy Guard `9oZ6UaRjaVmi75wQQVsVFmG1xkcR2nEN7v8iCsh8LH7x`. Guard groups: `public` (0.04 SOL to the creator wallet) and `free` (allowList of the creator wallet + mintLimit 1, so exactly one free mint). Full record: `tools/nft/MAINNET_LAUNCH.md`.
+
 - `raincats/config.js`: the cluster, RPC, Candy Machine, guard, collection, treasury and free-mint wallets. While the addresses are `null` the panel shows "Mint opens soon".
 - `raincats/mint.js`: the bundled mint and "My Rain Cats" UI. It is loaded only when the panel is opened. Source: `tools/nft/web/mint-src.js`. Build: `npx esbuild web/mint-src.js --bundle --minify --format=iife --define:global=globalThis --outfile=../../raincats/mint.js`.
 - `tools/nft/`: the generator (`generate.js`), the Irys upload (`upload.js`), the Core Candy Machine deploy (`deploy.js`), and the mint tests (`minttest.js`, `mint-e2e.js`). Keypairs live outside the repo and are never committed.
