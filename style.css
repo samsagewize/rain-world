@@ -130,3 +130,8 @@ body.pk #pad,body.pk #btnA,body.pk #prompt,body.pk #dialog{display:none!importan
 #btnRooms{display:none;height:38px;align-items:center;padding:0 9px;background:var(--panel);border:3px solid var(--ink);box-shadow:3px 3px 0 #000;font-family:"PS2P",monospace;font-size:8px;color:var(--mint);text-decoration:none;white-space:nowrap}
 .in-rooms #btnRooms{display:flex}
 @media (max-width:430px){#title{display:none}#btnRooms{height:34px;padding:0 6px;font-size:7px}#buttons{gap:6px}#buttons button{width:34px;height:34px}#buttons #btnWallet{padding:0 6px;font-size:7px}}
+
+/* Free-claim rent note: always shown with any free-claim offer (members pay their own Solana rent). */
+.freeNote{font-size:7px;line-height:1.8;color:#3dffc0;background:rgba(61,255,192,.08);border:2px solid rgba(61,255,192,.45);padding:6px 8px;margin-top:6px;text-align:center}
+#rcVerified.hidden+.freeNote{display:none}
+#dlgLinks .freeNote{flex-basis:100%;margin-top:0}

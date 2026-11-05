@@ -445,6 +445,7 @@ function openDialog(t) {
   if (c.media && c.media.type === 'video') { const v = document.createElement('video'); v.src = c.media.src; v.controls = true; v.playsInline = true; v.setAttribute('playsinline', ''); v.muted = !soundOn; v.preload = 'metadata'; media.appendChild(v); }
   const links = $('dlgLinks'); links.innerHTML = '';
   (c.links || []).forEach(l => { if (l.action) { const b = document.createElement('button'); b.className = 'act'; b.textContent = l.label; if (l.cls) b.classList.add(l.cls); b.addEventListener('click', () => l.action === 'pick' ? openPicker(true) : rcOpen(l.action)); links.appendChild(b); return; } const a = document.createElement('a'); a.href = l.href; a.target = '_blank'; a.rel = 'noopener'; a.textContent = l.label; if (l.alt) a.className = 'alt'; if (l.cls) a.classList.add(l.cls); links.appendChild(a); });
+  if ((c.links || []).some(l => l.cls === 'verified')) links.appendChild(freeNoteEl());
   $('dlgCredit').textContent = c.credit || '';
   drawIcon(c.icon[0], c.icon[1]);
   dlg.classList.remove('hidden'); document.body.classList.add('dlg');
@@ -862,6 +863,8 @@ const mintWindowCats = SR.map(s => s.look).concat(Array.from({ length: 9 }, () =
   lights.push({ x: MINTB.x + W / 2, y: MINTB.y - 14, r: 22, col: C.yellow, a: 0.25 });
 })();
 const VERIFIED_LABEL = 'Verified \u2713? Claim your free cat at intherooms.xyz/mint';
+const FREE_NOTE = 'Claiming your free mint requires at least 0.005 SOL in your wallet (Solana network fee).';
+function freeNoteEl() { const n = document.createElement('div'); n.className = 'freeNote'; n.textContent = FREE_NOTE; return n; }
 targets.push({ id: 'mint', mdy: 46, x: MINTB.x + MINTB.w / 2, y: MINTB.y + 12, r: 30, name: 'Rain Cats Mint', label: 'Rain Cats Mint', kind: 'main', action: 'mint', card: {
   tag: 'RAIN CATS · SOLANA NFT', title: 'Rain Cats Mint',
   body: '1,000 pixel cats in my exact style, with 9 one-of-one Super Rares. Mint a mystery cat for 0.04 SOL and see it only after you pay. Then connect your wallet and walk around my world as your own cat.',
@@ -1011,7 +1014,7 @@ function renderPicker() {
   roomsInfo(wallet, true).then(info => {
     if (seq !== pkSeq) return;
     const cats = info.cats.filter(c => c.dna);
-    if (info.verified) { const a = document.createElement('a'); a.className = 'verified'; a.href = ROOMS_URL + '/mint'; a.target = '_blank'; a.rel = 'noopener'; a.textContent = VERIFIED_LABEL; acts.appendChild(a); }
+    if (info.verified) { const a = document.createElement('a'); a.className = 'verified'; a.href = ROOMS_URL + '/mint'; a.target = '_blank'; a.rel = 'noopener'; a.textContent = VERIFIED_LABEL; acts.appendChild(a); acts.appendChild(freeNoteEl()); }
     if (!cats.length) {
       pkNote(info.cats.length ? 'Your Rain Cats are still syncing. Try again in a minute.' : 'No Rain Cats in this wallet yet. Mint a mystery cat at the Rain Cats Mint, then come back and walk as it!');
       const b = document.createElement('button'); b.className = 'go'; b.textContent = 'Go to the Mint building'; b.addEventListener('click', () => goTo('mint')); acts.prepend(b);
