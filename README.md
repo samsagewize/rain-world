@@ -10,12 +10,21 @@ A small pixel-art world for Rain, the cat assistant, with a landmark for everyth
 | --- | --- |
 | ![Mobile](docs/world-mobile.png) | ![Cat picker](docs/cat-picker.png) |
 
-## The two buildings
+## The buildings
 
-The world has exactly two buildings on the front walk, both a few steps from where you start (and from the plaza signposts):
+Two buildings on the front walk, a few steps from where you start (and from the plaza signposts):
 
 - **Rooms HQ** (left): Clubhouse-style live audio with Phantom Solana sign-in. The card links to [intherooms.xyz](https://www.intherooms.xyz). Made by Urua Labs.
 - **Rain Cats Mint** (right): opens the mint panel (blind mint, 0.04 SOL), **My Rain Cats**, and **Walk as my cat**. Rooms members with a check mark see **Verified ✓? Claim your free cat at intherooms.xyz/mint**.
+
+**Dev Row**, the street just south of the plaza (follow the GITHUB LABS / DEV SOUND signposts):
+
+- **GitHub** (`@samsagewize`): opens [github.com/samsagewize](https://github.com/samsagewize).
+- **Urua Labs**: opens [urualabs.com](https://urualabs.com).
+- **Dev Building, message me**: opens [x.com/SamSageWize](https://x.com/SamSageWize) on X.
+- **soundwav.fun**: opens [soundwav.fun](https://soundwav.fun).
+
+Walk up to a door and its card pops up; the button (or a second E / A press at the door) opens the link in a new tab.
 
 The rest is scenery: the plaza, trees, lamps and the two meadows where Rain Cats roam.
 

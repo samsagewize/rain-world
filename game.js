@@ -27,7 +27,7 @@ const FONT = {
   Z:'111001010100111','0':'111101101101111','1':'010110010010111','2':'110001010100111','3':'110001010001110',
   '4':'101101111001001','5':'111100110001110','6':'011100111101111','7':'111001010010010','8':'111101111101111',
   '9':'111101111001110','$':'011110010011110','!':'010010010000010','?':'110001010000010','.':'000000000000010',
-  '-':'000000111000000',"'":'010010000000000',' ':'000000000000000','&':'010101010101011',':':'000010000010000'
+  '-':'000000111000000','/':'001001010100100','@':'010101111100011',"'":'010010000000000',' ':'000000000000000','&':'010101010101011',':':'000010000010000'
 };
 function text(ctx, s, x, y, col, sc = 1) {
   ctx.fillStyle = col; x = Math.round(x); y = Math.round(y);
@@ -131,7 +131,7 @@ const VILLAGE_PALS = [
 ];
 
 // ---------- the world layout (tiles) ----------
-// Two buildings only: Rooms HQ (west) and the Rain Cats Mint (east), joined by one front walk.
+// Rooms HQ (west) and the Rain Cats Mint (east) on the front walk; GitHub, Urua Labs and the Dev Building on Dev Row below.
 const isVoid = (tx, ty) => tx < 15 || tx > 48 || ty < 6 || ty > 42;
 const inR = (tx, ty, x0, y0, x1, y1) => tx >= x0 && tx <= x1 && ty >= y0 && ty <= y1;
 const PLAZA = { x: 32, y: 30, r: 3.6 };
@@ -139,8 +139,9 @@ function tileKind(tx, ty) {
   if (isVoid(tx, ty)) return 'void';
   if (Math.hypot(tx + 0.5 - PLAZA.x, ty + 0.5 - PLAZA.y) < PLAZA.r) return 'plaza';
   if (inR(tx, ty, 17, 21, 46, 23)) return 'road';      // front walk past both doors
+  if (inR(tx, ty, 16, 32, 47, 33)) return 'road';      // Dev Row: GitHub, Urua Labs, Dev Building, soundwav.fun
   if (inR(tx, ty, 30, 24, 33, 41)) return 'avenue';    // from the start up to the front walk
-  if (inR(tx, ty, 16, 34, 27, 41) || inR(tx, ty, 37, 34, 47, 41)) return 'village'; // flower meadows
+  if (inR(tx, ty, 16, 35, 27, 41) || inR(tx, ty, 37, 35, 47, 41)) return 'village'; // flower meadows
   return 'ground';
 }
 
@@ -188,6 +189,7 @@ const [ground, gx] = mk(WW, WH);
   // lane dashes on the avenue & front walk
   for (let y = 24 * T; y < 42 * T; y += 12) if (Math.abs(y / T - PLAZA.y) > PLAZA.r) R(gx, 32 * T - 1, y, 2, 6, C.lane);
   for (let x = 17 * T; x < 47 * T; x += 12) R(gx, x, 22 * T + 7, 6, 2, C.lane);
+  for (let x = 16 * T + 4; x < 48 * T - 8; x += 12) if (Math.abs(x / T - PLAZA.x) > PLAZA.r + 0.5) R(gx, x, 32 * T + 15, 6, 2, C.lane);
   // plaza ring
   ring(gx, PLAZA.x * T, PLAZA.y * T + 8, PLAZA.r * T - 6, C.mint2);
   ring(gx, PLAZA.x * T, PLAZA.y * T + 8, PLAZA.r * T - 9, C.mint3);
@@ -287,7 +289,7 @@ function tree(px, py, v) {
   solid(px - 3, py - 4, 7, 4);
 }
 // keep trees off the buildings, the plaza, the signposts and the paths between them
-const RESERVED = [[18, 6, 31, 24], [33, 10, 45, 24], [27, 24, 37, 34], [16, 24, 18, 26], [45, 24, 47, 26]];
+const RESERVED = [[18, 6, 31, 24], [33, 10, 45, 24], [27, 24, 37, 34], [16, 24, 18, 26], [45, 24, 47, 26], [15, 24, 29, 35], [35, 24, 48, 35]];
 const reserved = (tx, ty) => RESERVED.some(([a, b, c, d]) => inR(tx, ty, a, b, c, d));
 for (let i = 0; i < 160; i++) {
   const tx = 15 + (rand() * 34 | 0), ty = 6 + (rand() * 37 | 0);
@@ -309,7 +311,7 @@ targets.push({ id: 'rooms', mdy: 46, x: TOWER.x + TOWER.w / 2, y: TOWER.y + 12, 
   credit: 'Made by Urua Labs', icon: ['tower'] } });
 
 // ---------- roaming cats in the meadows ----------
-const MEADOWS = [[16 * T + 8, 34 * T + 8, 27 * T + 8, 41 * T + 8], [37 * T + 8, 34 * T + 8, 47 * T + 8, 41 * T + 8]];
+const MEADOWS = [[16 * T + 8, 35 * T + 8, 27 * T + 8, 41 * T + 8], [37 * T + 8, 35 * T + 8, 47 * T + 8, 41 * T + 8]];
 VILLAGE_PALS.forEach((pal, i) => {
   const b = MEADOWS[i % 2];
   npcs.push({ pal, x: b[0] + 16 + (i * 37) % (b[2] - b[0] - 32), y: b[1] + 8 + (i * 23) % (b[3] - b[1] - 16), tx: 0, ty: 0, wait: rand() * 2, dir: 'down', frame: 0, ft: 0, bounds: b, meow: 0 });
@@ -434,6 +436,10 @@ function drawIcon(kind, col) {
     case 'jup': ring(ic, 8, 8, 6, C.mint); ring(ic, 8, 8, 4, C.yellow); ring(ic, 8, 8, 2, C.sky); r(7, 7, 2, 2, C.ink); break;
     case 'gif': r(1, 4, 14, 8, C.pink); text(ic, 'GIF', 2, 6, C.out); break;
     case 'search': ring(ic, 7, 7, 4, C.ink); ring(ic, 7, 7, 3.5, C.ink); r(10, 10, 2, 2, C.ink); r(12, 12, 2, 2, C.ink); r(5, 6, 2, 2, C.mint); break;
+    case 'github': r(3, 2, 10, 11, C.ink); r(3, 0, 3, 3, C.ink); r(10, 0, 3, 3, C.ink); r(5, 5, 2, 2, C.out); r(9, 5, 2, 2, C.out); r(7, 8, 2, 1, C.out); r(6, 13, 4, 3, C.ink); r(2, 12, 2, 2, C.ink); break;
+    case 'lab': r(6, 1, 4, 2, C.ink); r(7, 3, 2, 4, C.ink); for (let y = 7; y < 15; y++) { const w = 2 + (y - 7) * 1.5 | 0; r(8 - w / 2 - 1 | 0, y, w + 2, 1, C.ink); r(8 - w / 2 | 0, y, w, 1, y > 10 ? C.purple : '#16182c'); } r(6, 12, 1, 1, C.mint); r(9, 11, 1, 1, C.yellow); break;
+    case 'x': for (let i = 0; i < 12; i++) { r(2 + i, 2 + i, 2, 1, C.ink); r(13 - i, 2 + i, 1, 1, C.ink); } r(1, 1, 4, 1, C.ink); r(11, 14, 4, 1, C.ink); break;
+    case 'wave': [3, 6, 10, 13, 8, 4, 11, 7].forEach((h, i) => r(1 + i * 2, 15 - h, 1, h, i % 2 ? C.orange : C.yellow)); break;
     case 'sound': r(2, 6, 3, 4, C.ink); r(5, 4, 2, 8, C.ink); r(7, 2, 2, 12, C.ink); r(11, 5, 1, 6, C.mint); r(13, 3, 1, 10, C.mint2); break;
   }
 }
@@ -870,6 +876,89 @@ targets.push({ id: 'mint', mdy: 46, x: MINTB.x + MINTB.w / 2, y: MINTB.y + 12, r
   body: '1,000 pixel cats in my exact style, with 9 one-of-one Super Rares. Mint a mystery cat for 0.04 SOL and see it only after you pay. Then connect your wallet and walk around my world as your own cat.',
   links: [{ label: 'Mint a mystery cat \u00b7 0.04 SOL', action: 'mint' }, { label: 'My Rain Cats', action: 'mine', cls: 'alt' }, { label: 'Walk as my cat', action: 'pick', cls: 'alt' },
     { label: VERIFIED_LABEL, href: ROOMS_URL + '/mint', cls: 'verified' }], icon: ['mint'] } });
+
+// ---- Dev Row: GitHub, Urua Labs, Dev Building (each opens Christian's link in a new tab) ----
+const DEV_Y = 32 * T - 4; // baseline: doors open onto Dev Row
+function devBuilding(o) {
+  const { x: X0, w: W, h: H } = o;
+  const [c, x] = mk(W, H);
+  const roof = 22, bodyTop = 34;
+  // roof sign
+  box(x, 4, 6, W - 8, roof, '#0d1124', o.accent);
+  text(x, o.sign, W / 2 - textW(o.sign, 2) / 2, 10, o.signCol || C.ink, 2);
+  if (o.sub) text(x, o.sub, W / 2 - textW(o.sub) / 2, 21, o.accent);
+  // body
+  box(x, 2, bodyTop, W - 4, H - bodyTop, o.wall);
+  R(x, 3, bodyTop + 1, W - 6, 4, o.wall2);
+  R(x, 3, bodyTop + 5, W - 6, 1, o.accent);
+  R(x, 3, H - 6, W - 6, 5, o.wall3);
+  o.paint(x, W, H, bodyTop);
+  // door
+  box(x, W / 2 - 10, H - 26, 20, 24, '#0d1124', o.accent);
+  R(x, W / 2 - 1, H - 25, 2, 22, o.wall3);
+  R(x, W / 2 - 5, H - 15, 2, 2, o.accent); R(x, W / 2 + 3, H - 15, 2, 2, o.accent);
+  props.push({ y: DEV_Y, draw: (g, t) => { g.drawImage(c, X0, DEV_Y - H); if (o.anim) o.anim(g, t, X0, DEV_Y - H, W, H); } });
+  solid(X0 + 2, DEV_Y - 56, W - 4, 54);
+  lights.push({ x: X0 + W / 2, y: DEV_Y - H + 16, r: 40, col: o.accent, a: 0.28 });
+  lights.push({ x: X0 + W / 2, y: DEV_Y - 12, r: 20, col: o.accent, a: 0.28 });
+  targets.push({ id: o.id, mdy: o.mdy || 34, x: X0 + W / 2, y: DEV_Y + 12, r: 28, name: o.name, label: o.name, kind: 'main', go: o.href, card: o.card });
+}
+// GitHub: dark repo house with a contribution-graph window wall
+devBuilding({ id: 'github', name: 'GitHub', x: 15 * T + 10, w: 92, h: 108, sign: 'GITHUB', sub: '@SAMSAGEWIZE', accent: '#3fb950', wall: '#22272e', wall2: '#2d333b', wall3: '#1c2128', href: 'https://github.com/samsagewize',
+  paint: (x, W, H, top) => {
+    const greens = ['#0e4429', '#006d32', '#26a641', '#39d353', '#161b22'];
+    box(x, 8, top + 10, W - 16, 30, '#0d1117', '#3fb950');
+    for (let r = 0; r < 4; r++) for (let k = 0; k < 11; k++) R(x, 11 + k * 6.5 | 0, top + 13 + r * 6, 5, 5, greens[(r * 7 + k * 3 + (k * r) % 4) % 5]);
+  },
+  anim: (g, t, X, Y, W) => { const k = Math.floor(t * 3) % 44; R(g, X + 11 + (k % 11) * 6.5 | 0, Y + 47 + (k / 11 | 0) * 6, 5, 5, '#5cff7a'); },
+  card: { tag: 'GITHUB · CODE', title: 'GitHub: samsagewize', body: "Christian's code lives here: Rooms, Rain's World, the Rain Cats mint and everything else we have built together. Star a repo or open an issue.",
+    links: [{ label: 'Open github.com/samsagewize', href: 'https://github.com/samsagewize' }], credit: 'github.com/samsagewize', icon: ['github'] } });
+// Urua Labs: the studio lab, with a bubbling flask in the window
+devBuilding({ id: 'urua', name: 'Urua Labs', x: 22 * T + 4, w: 92, h: 108, sign: 'URUA LABS', sub: 'URUALABS.COM', accent: C.purple, wall: '#2a2350', wall2: '#352d63', wall3: '#1d1838', href: 'https://urualabs.com',
+  paint: (x, W, H, top) => {
+    box(x, 8, top + 10, 30, 28, '#0b0e1c', C.sky); box(x, W - 38, top + 10, 30, 28, '#0b0e1c', C.sky);
+    // flask (left) and beakers (right)
+    R(x, 21, top + 14, 4, 8, '#c9d3ea'); for (let y = 0; y < 12; y++) R(x, 23 - (y / 1.4 | 0) - 1, top + 22 + y, (y / 1.4 | 0) * 2 + 2, 1, y > 4 ? C.mint : '#c9d3ea');
+    R(x, W - 33, top + 24, 6, 12, C.pink); R(x, W - 24, top + 20, 6, 16, C.yellow); R(x, W - 33, top + 23, 6, 1, '#ffffff'); R(x, W - 24, top + 19, 6, 1, '#ffffff');
+  },
+  anim: (g, t, X, Y) => { for (let i = 0; i < 3; i++) { const k = (t * 0.8 + i / 3) % 1; R(g, X + 21 + Math.round(Math.sin(t * 4 + i * 2) * 2) + i, Y + 47 - Math.round(k * 12), 1, 1, i % 2 ? C.mint : '#ffffff'); } },
+  card: { tag: 'URUA LABS · STUDIO', title: 'Urua Labs', body: 'Selected work by Sam Sage: Rooms, Soundwav, Rain Cats and more. The studio behind everything on this street.',
+    links: [{ label: 'Open urualabs.com', href: 'https://urualabs.com' }], credit: 'urualabs.com', icon: ['lab'] } });
+// Dev Building: message me on X
+devBuilding({ id: 'dev', name: 'Dev Building', x: 36 * T + 2, w: 104, h: 100, sign: 'DEV BUILDING', sub: 'MESSAGE ME @SAMSAGEWIZE', accent: C.mint, signCol: C.mint, wall: '#14161f', wall2: '#1f2230', wall3: '#0b0c12', href: 'https://x.com/SamSageWize',
+  paint: (x, W, H, top) => {
+    // X logo panel between two terminal windows
+    box(x, W / 2 - 13, top + 8, 26, 26, '#000000', C.ink);
+    for (let i = 0; i < 18; i++) { R(x, W / 2 - 9 + i, top + 12 + i, 3, 1, C.ink); R(x, W / 2 + 8 - i, top + 12 + i, 1, 1, C.ink); }
+    [[8, top + 8], [W - 32, top + 8]].forEach(([wx, wy]) => { box(x, wx, wy, 24, 24, '#04130f', C.mint2); for (let l = 0; l < 4; l++) R(x, wx + 3, wy + 4 + l * 5, 6 + (l * 5) % 13, 1, C.mint); });
+  },
+  anim: (g, t, X, Y, W) => {
+    const on = Math.floor(t * 2) % 2, top = Y + 34;
+    if (on) { R(g, X + 8 + 12, top + 8 + 19, 3, 1, '#ffffff'); R(g, X + W - 32 + 12, top + 8 + 19, 3, 1, '#ffffff'); }
+    // chat bubble over the roof: "message me"
+    const by = Y + 2 + Math.round(Math.sin(t * 2.5) * 1.5), bx = X + W - 22;
+    box(g, bx, by - 8, 20, 9, C.ink); R(g, bx + 4, by + 1, 2, 2, C.ink);
+    for (let i = 0; i < 3; i++) R(g, bx + 5 + i * 4, by - 4, 2, 2, (Math.floor(t * 3) % 3) === i ? C.mint2 : C.out);
+  },
+  card: { tag: 'DEV BUILDING · MESSAGE ME', title: 'Dev Building: message me', body: 'Want something built, have an idea, or just want to say hi? Message Christian on X (@SamSageWize). DMs are open.',
+    links: [{ label: 'Message @SamSageWize on X', href: 'https://x.com/SamSageWize' }], credit: 'x.com/SamSageWize', icon: ['x'] } });
+// soundwav.fun: a little music venue with a live equalizer window
+devBuilding({ id: 'soundwav', name: 'soundwav.fun', x: 43 * T, w: 92, h: 108, sign: 'SOUNDWAV', sub: 'SOUNDWAV.FUN', accent: C.orange, signCol: C.yellow, wall: '#2a1a2e', wall2: '#3a2440', wall3: '#1c1120', href: 'https://soundwav.fun',
+  paint: (x, W, H, top) => {
+    box(x, 8, top + 10, W - 16, 30, '#0b0e1c', C.orange);
+    // speakers either side of the door
+    [[10, H - 26], [W - 24, H - 26]].forEach(([sx, sy]) => { box(x, sx, sy, 14, 22, '#120a14', C.orange2); ring(x, sx + 7, sy + 7, 3, C.ink); ring(x, sx + 7, sy + 16, 2, C.ink); });
+  },
+  anim: (g, t, X, Y, W) => {
+    const top = Y + 34, cols = [C.pink, C.orange, C.yellow, C.mint, C.sky];
+    for (let i = 0; i < 12; i++) { const h = 3 + Math.round((Math.sin(t * 6 + i * 0.9) + Math.sin(t * 3.7 + i * 2.1) + 2) * 5.5); R(g, X + 12 + i * 6, top + 38 - h, 4, h, cols[i % 5]); }
+    for (let i = 0; i < 2; i++) { const k = (t * 0.6 + i / 2) % 1; text(g, i ? '~' : '.', X + W / 2 + (i ? 14 : -18), Y + 2 - Math.round(k * 10), C.yellow); R(g, X + W / 2 + (i ? 14 : -18), Y + 4 - Math.round(k * 10), 2, 2, i ? C.pink : C.yellow); }
+  },
+  card: { tag: 'SOUNDWAV.FUN · MUSIC', title: 'soundwav.fun', body: 'Music you can collect: rip a pack, reveal the music and build your collector profile. Soundwav Genesis is a permanently limited release of digital music packs.',
+    links: [{ label: 'Open soundwav.fun', href: 'https://soundwav.fun' }], credit: 'soundwav.fun', icon: ['wave'] } });
+// Dev Row signposts at the junction with the avenue
+signpost(28 * T + 6, 34 * T + 12, 'GITHUB  LABS', C.sky);
+signpost(36 * T + 10, 34 * T + 12, 'DEV  SOUND', C.mint);
 
 // cats released into the meadows
 function spawnMade(v) {
